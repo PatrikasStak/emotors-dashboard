@@ -7,6 +7,7 @@ import pygame.gfxdraw
 
 # ----------------------------
 # Config
+from config import SPEED_FULL_SCALE_KPH, SPEED_MAX_VALUE, SPEED_UNIT
 # ----------------------------
 DESIGN_W, DESIGN_H = 1920, 1080   # logical design canvas
 FPS = 60
@@ -304,7 +305,7 @@ def main(reader):
     SPEED_BASE_START_DEG = 225
     SPEED_DEG_PER_UNIT = 12.6  # degrees per 1 speed unit
     SPEED_VISIBLE_MAX = 16.0
-    SPEED_MAX_VALUE = 12.0
+    
     SPEED_START_DEG = SPEED_MASK_START_DEG
     SPEED_END_DEG = SPEED_START_DEG + (SPEED_VISIBLE_MAX * SPEED_DEG_PER_UNIT)
     RPM_MASK_START_DEG = 225
@@ -367,7 +368,7 @@ def main(reader):
 
         power = state.power_kw
         rpm = state.rpm
-        SPEED_FULL_SCALE_KPH = 60.0  # change per boat
+
         speed_kph = state.speed_kph
         # Map real speed (kph) -> your gauge units (0..12)
         speed = (speed_kph / SPEED_FULL_SCALE_KPH) * 12.0
