@@ -1,4 +1,3 @@
-from state.dashboard_state import DashboardState
 
 import math
 import sys
@@ -363,19 +362,32 @@ def main(reader):
                 running = False
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 running = False
+        # ----------------------------
+        state = reader.snapshot()
 
-        # ---- Dummy animation: full-range sweep ----
-        t = pygame.time.get_ticks() / 1000.0
-        sweep = (t * 0.15) % 2.0
-        phase = sweep if sweep <= 1.0 else 2.0 - sweep
-        power = POWER_RANGE[0] + (POWER_RANGE[1] - POWER_RANGE[0]) * phase
-        rpm = RPM_RANGE[0] + (RPM_RANGE[1] - RPM_RANGE[0]) * phase
-        speed = SPEED_RANGE[0] + (SPEED_RANGE[1] - SPEED_RANGE[0]) * phase
-        battery = BATTERY_RANGE[0] + (BATTERY_RANGE[1] - BATTERY_RANGE[0]) * phase
-        power = clamp(power, *POWER_RANGE)
-        rpm = clamp(rpm, *RPM_RANGE)
-        speed = clamp(speed, *SPEED_RANGE)
-        battery = clamp(battery, *BATTERY_RANGE)
+        power = state.power_kw
+        rpm = state.rpm
+        SPEED_FULL_SCALE_KPH = 60.0  # change per boat
+        speed_kph = state.speed_kph
+        # Map real speed (kph) -> your gauge units (0..12)
+        speed = (speed_kph / SPEED_FULL_SCALE_KPH) * 12.0
+        battery = state.battery_pct
+
+        dc_current = int(state.dc_current_a)
+        ac_current = int(state.ac_current_a)
+        battery_voltage = int(state.battery_voltage_v)
+
+        battery_state = state.battery_state
+        brakes_state = state.brakes_state
+        satellite_state = state.satellite_state
+
+        engine_state = state.engine_state
+        chip_state = state.chip_state
+        switch_state = state.switch_state
+
+        engine_value = int(state.engine_temp_c)
+        chip_value = int(state.controller_temp_c)
+        switch_value = float(state.switch_value_v)
 
         # ---- Draw ----
         # 1) Background
@@ -507,6 +519,7 @@ def main(reader):
         screen.blit(assets["rpm"], rpm_pos)
 
         # 5) Draw speed arc image under the speed gauge art
+        
         blit_arc_image(
             assets["speed arc"],
             (speed_center_design[0] + 12.0, speed_center_design[1] + 2.0),
@@ -570,15 +583,15 @@ def main(reader):
 
         # 7) Speed gauge numbers
         draw_centered_text("0", (1671, 720), colors["text"], font_gauge)
-        draw_centered_text("2", (1752, 598), colors["text"], font_gauge)
-        draw_centered_text("4", (1775, 451), colors["text"], font_gauge)
-        draw_centered_text("6", (1727, 311), colors["text"], font_gauge)
-        draw_centered_text("8", (1629, 209), colors["text"], font_gauge)
-        draw_centered_text("10", (1500, 156), colors["text"], font_gauge)
-        draw_centered_text("12", (1355, 164), colors["text"], font_gauge)
+        draw_centered_text("10", (1752, 598), colors["text"], font_gauge)
+        draw_centered_text("20", (1775, 451), colors["text"], font_gauge)
+        draw_centered_text("30", (1727, 311), colors["text"], font_gauge)
+        draw_centered_text("40", (1629, 209), colors["text"], font_gauge)
+        draw_centered_text("50", (1500, 156), colors["text"], font_gauge)
+        draw_centered_text("60", (1355, 164), colors["text"], font_gauge)
 
         # 7) Speed counter centered on speed gauge
-        speed_display = int(speed)
+        speed_display = int(speed_kph)
         draw_centered_text(
             f"{speed_display:02d}",
             (speed_center_design[0] + 100.0, speed_center_design[1]),
@@ -682,4 +695,27 @@ def main(reader):
 
 
 if __name__ == "__main__":
-    main()
+    class _LocalMockReader:
+        def snapshot(self):
+            # Minimal object with the attributes you read below.
+            class S:
+                power_kw = 5.0
+                rpm = 1200.0
+                speed_kph = 10.0
+                battery_pct = 80.0
+                dc_current_a = 20.0
+                ac_current_a = 10.0
+                battery_voltage_v = 52.0
+                battery_state = "on"
+                brakes_state = "off"
+                satellite_state = "on"
+                engine_state = "blue"
+                chip_state = "blue"
+                switch_state = "off"
+                engine_temp_c = 45.0
+                controller_temp_c = 40.0
+                switch_value_v = 0.0
+            return S()
+
+    main(_LocalMockReader())
+

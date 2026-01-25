@@ -1,6 +1,7 @@
-# app/main.py
-from config import IS_PI
-from dashboard import run_dashboard
+import platform
+from Dashboard import main  # your big existing file
+
+IS_PI = platform.machine().startswith("arm")
 
 if IS_PI:
     from io.can_reader import CANReader
@@ -8,20 +9,18 @@ if IS_PI:
 else:
     from io.mock_reader import MockReader
 
-def main():
+def run():
     if IS_PI:
         can = CANReader("can0")
         gps = GPSReader()
         can.start()
         gps.start()
-
-        run_dashboard(can, gps)
-
+        main(can)   # dashboard reads from CAN/GPS-backed reader
         can.stop()
         gps.stop()
     else:
         mock = MockReader()
-        run_dashboard(mock)
+        main(mock)  # dashboard reads simulated data
 
 if __name__ == "__main__":
-    main()
+    run()
