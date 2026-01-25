@@ -1,3 +1,5 @@
+from state.dashboard_state import DashboardState
+
 import math
 import sys
 import pygame
@@ -207,7 +209,7 @@ def screen_px_to_design(sc: Scaler, pos: tuple[int, int]) -> tuple[float, float]
 # ----------------------------
 # Main
 # ----------------------------
-def main():
+def main(reader):
     pygame.init()
     pygame.display.set_caption("Dashboard Base")
 
