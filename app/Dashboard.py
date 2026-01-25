@@ -701,7 +701,7 @@ if __name__ == "__main__":
             class S:
                 power_kw = 5.0
                 rpm = 1200.0
-                speed_kph = 10.0
+                speed_kph = 25.0
                 battery_pct = 80.0
                 dc_current_a = 20.0
                 ac_current_a = 10.0

@@ -1,13 +1,13 @@
 import platform
 from Dashboard import main  # your big existing file
 
-IS_PI = platform.machine().startswith("arm")
+IS_PI = platform.system() == "Linux" and platform.machine().startswith("arm")
 
 if IS_PI:
-    from io.can_reader import CANReader
-    from io.gps_reader import GPSReader
+    from inputs.can_reader import CANReader
+    from inputs.gps_reader import GPSReader
 else:
-    from io.mock_reader import MockReader
+    from inputs.mock_reader import MockReader
 
 def run():
     if IS_PI:
