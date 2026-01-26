@@ -25,5 +25,7 @@ class MockReader:
         s.satellite_state = "on"
         s.engine_state = "blue"
         s.chip_state = "blue"
+        s.switch_value_v = 5 + phase * 7
+        s.switch_state = "blue" if s.switch_value_v > 1.0 else "off"
 
         return s

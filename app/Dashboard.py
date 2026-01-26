@@ -657,7 +657,7 @@ def main(reader):
             switch_text_color = colors["text_red"]
         elif switch_state == "off":
             switch_text_color = pygame.Color(0, 0, 0, 0)
-        draw_text_under_icon(f"{switch_value} V", switch_rect, switch_text_color)
+        draw_text_under_icon(f"{switch_value:.2f} V", switch_rect, switch_text_color)
 
         # 12) Chip temperature icon
         chip_pos = sc.pt(rpm_center_design[0] - 50.0, 250)
@@ -712,11 +712,10 @@ if __name__ == "__main__":
                 satellite_state = "on"
                 engine_state = "blue"
                 chip_state = "blue"
-                switch_state = "off"
+                switch_state = "blue"
                 engine_temp_c = 45.0
                 controller_temp_c = 40.0
-                switch_value_v = 0.0
+                switch_value_v = 12.5
             return S()
 
     main(_LocalMockReader())
-

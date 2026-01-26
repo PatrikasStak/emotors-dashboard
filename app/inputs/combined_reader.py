@@ -20,6 +20,8 @@ class CombinedReader:
         s.battery_voltage_v = cs.battery_voltage_v
         s.controller_temp_c = cs.controller_temp_c
         s.engine_temp_c = cs.motor_temp_c
+        # Optional switch voltage if the CAN payload exposes it.
+        s.switch_value_v = getattr(cs, "switch_voltage_v", 0.0)
 
         # If you want power and don't have kW directly:
         s.power_kw = (s.battery_voltage_v * s.dc_current_a) / 1000.0
@@ -37,7 +39,7 @@ class CombinedReader:
         # Switch bits: fill once confirmed on Pi
         # For now default off:
         s.brakes_state = "off"
-        s.switch_state = "off"
+        s.switch_state = "blue" if s.switch_value_v > 1.0 else "off"
 
         # Error bits: if any error, red else blue
         s.engine_state = "red" if cs.error_bits else "blue"
