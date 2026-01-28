@@ -24,3 +24,4 @@ class DashboardState:
     switch_state: str = "red"
 
     switch_value_v: float = 0.0
+    errors_text: str = ""

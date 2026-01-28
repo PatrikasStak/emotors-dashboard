@@ -1,4 +1,5 @@
-
+import os
+os.system("unclutter -idle 0 &")
 import math
 import sys
 import pygame
@@ -13,11 +14,11 @@ DESIGN_W, DESIGN_H = 1920, 1080   # logical design canvas
 FPS = 60
 
 # For development on your laptop:
-WINDOWED = True
-WINDOW_SIZE = (1024, 600)         # change to (1920, 1080) if you want|1280 720
+#WINDOWED = True
+#WINDOW_SIZE = (1024, 600)         # change to (1920, 1080) if you want|1280 720
 
 # For Raspberry Pi deployment later:
-# WINDOWED = False  # fullscreen
+WINDOWED = False  # fullscreen
 
 
 # ----------------------------
@@ -211,13 +212,19 @@ def screen_px_to_design(sc: Scaler, pos: tuple[int, int]) -> tuple[float, float]
 # ----------------------------
 def main(reader):
     pygame.init()
+    pygame.display.init()
     pygame.display.set_caption("Dashboard Base")
 
-    if WINDOWED:
-        screen = pygame.display.set_mode(WINDOW_SIZE)
-    else:
-        info = pygame.display.Info()
-        screen = pygame.display.set_mode((info.current_w, info.current_h), pygame.FULLSCREEN)
+    info = pygame.display.Info()
+    screen = pygame.display.set_mode(
+        (info.current_w, info.current_h),
+        pygame.FULLSCREEN
+    )
+
+    pygame.mouse.set_visible(False)
+    pygame.event.set_grab(True)
+    pygame.mouse.get_rel()  # flush motion so cursor doesn't reappear
+    
 
     clock = pygame.time.Clock()
 
@@ -308,7 +315,7 @@ def main(reader):
     
     SPEED_START_DEG = SPEED_MASK_START_DEG
     SPEED_END_DEG = SPEED_START_DEG + (SPEED_VISIBLE_MAX * SPEED_DEG_PER_UNIT)
-    RPM_MASK_START_DEG = 225
+    RPM_MASK_START_DEG = 226
     RPM_BASE_START_DEG = -45
     RPM_DEG_PER_UNIT = SPEED_DEG_PER_UNIT / 500.0
     RPM_VISIBLE_MAX = 9000.0
@@ -688,6 +695,12 @@ def main(reader):
         # 14) Errors overlay (centered at bottom)
         errors_rect = assets["errors"].get_rect(midbottom=sc.pt(DESIGN_W / 2, DESIGN_H - 10))
         screen.blit(assets["errors"], errors_rect.topleft)
+        # After drawing errors overlay:
+        if hasattr(state, "errors_text") and state.errors_text.strip():
+            rendered = font_gauge.render(state.errors_text.strip(), True, colors["text_red"])
+            r = rendered.get_rect(center=errors_rect.center)
+            screen.blit(rendered, r.topleft)
+
 
         pygame.display.flip()
 
