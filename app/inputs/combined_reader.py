@@ -47,10 +47,16 @@ class CombinedReader:
             pct = (s.battery_voltage_v - BAT_V_MIN) / (BAT_V_MAX - BAT_V_MIN) * 100.0
             s.battery_pct = max(0.0, min(100.0, pct))
 
+            # temps (if provided by CANReader)
+            s.controller_temp_c = float(getattr(cs, "controller_temp_c", 0.0))
+            s.engine_temp_c = float(getattr(cs, "motor_temp_c", 0.0))
+            s.brakes_state = "on" if getattr(cs, "brake_on", False) else "off"
+
             s.battery_state = "on" if s.battery_voltage_v > 5.0 else "off"
             s.engine_state = "blue"
             s.chip_state = "blue"
-            s.ac_current_a = 0.0
+            # show motor current on AC readout
+            s.ac_current_a = float(getattr(cs, "motor_current_a", 0.0))
         else:
             s.rpm = s.dc_current_a = s.ac_current_a = s.battery_voltage_v = s.power_kw = s.battery_pct = 0.0
             s.switch_value_v = 0.0
