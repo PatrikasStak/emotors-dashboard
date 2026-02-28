@@ -13,7 +13,7 @@ else:
 
 def run():
     if IS_PI:
-        can = CANReader("can0")
+        can = CANReader("can0", debug=True)
         gps = GPSReader()
 
         can_started = False
@@ -22,7 +22,7 @@ def run():
                 can.start()
                 can_started = True
             except OSError as e:
-                print(f"CAN not ready: {e}")
+                print(f"CAN noot ready: {e}")
                 can = None  # <- important: CombinedReader must handle can=None
 
             gps.start()

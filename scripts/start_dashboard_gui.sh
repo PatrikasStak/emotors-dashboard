@@ -20,6 +20,12 @@ cd /home/pi/EmotorsDashboard
 lxpanelctl exit >/dev/null 2>&1 || true
 pcmanfm --desktop-off >/dev/null 2>&1 || true
 
+# Wait until can0 is up in listen-only (so we actually receive frames on this rig)
+for i in {1..20}; do
+  ip -details link show can0 2>/dev/null | grep -q "LISTEN-ONLY" && break
+  sleep 0.5
+done
+
 # Start dashboard
 /home/pi/EmotorsDashboard/venv/bin/python app/main.py >> "$LOG" 2>&1 &
 PID=$!

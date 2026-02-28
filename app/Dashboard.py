@@ -344,12 +344,12 @@ def main(reader):
     DEBUG_FORCE_FULL_ARCS = False
 
     # Dummy values (replace later with CAN/GPS)
-    power = 0.0
+    power = 6.0
     rpm = 0.0
     speed = 0.0
     battery = 0.0
     engine_value = 0
-    chip_value = 0
+    chip_value = 60
     switch_value = 0
     dc_current = 200
     ac_current = 200

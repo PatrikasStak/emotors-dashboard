@@ -21,7 +21,7 @@ class DashboardState:
 
     engine_state: str = "off"
     chip_state: str = "off"
-    switch_state: str = "red"
+    switch_state: str = "off"
 
     switch_value_v: float = 0.0
     errors_text: str = ""
