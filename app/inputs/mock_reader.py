@@ -3,6 +3,8 @@ import time
 import math
 from state.dashboard_state import DashboardState
 
+TEMP_ALERT_C = 75.0
+
 class MockReader:
     def snapshot(self) -> DashboardState:
         t = time.time()
@@ -11,7 +13,7 @@ class MockReader:
         s = DashboardState()
         s.power_kw = phase * 15
         s.rpm = phase * 6500
-        s.speed_kph = phase * 120
+        s.speed_kph = phase * 20
         s.battery_pct = 80 - phase * 10
 
         s.dc_current_a = phase * 120
@@ -23,8 +25,9 @@ class MockReader:
 
         s.battery_state = "on"
         s.satellite_state = "on"
-        s.engine_state = "blue"
-        s.chip_state = "blue"
+        normal_temp_state = "off"
+        s.engine_state = "red" if s.engine_temp_c > TEMP_ALERT_C else normal_temp_state
+        s.chip_state = "red" if s.controller_temp_c > TEMP_ALERT_C else normal_temp_state
         s.switch_value_v = 5 + phase * 7
         s.switch_state = "blue" if s.switch_value_v > 1.0 else "off"
 

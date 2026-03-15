@@ -10,6 +10,7 @@ RPM_DEADBAND = 30.0
 
 BAT_V_MIN = 36.0
 BAT_V_MAX = 50.0
+TEMP_ALERT_C = 75.0
 
 class CombinedReader:
     def __init__(self, can_reader, gps_reader):
@@ -52,9 +53,10 @@ class CombinedReader:
             s.engine_temp_c = float(getattr(cs, "motor_temp_c", 0.0))
             s.brakes_state = "on" if getattr(cs, "brake_on", False) else "off"
 
-            s.battery_state = "on" if s.battery_voltage_v > 5.0 else "off"
-            s.engine_state = "blue"
-            s.chip_state = "blue"
+            s.battery_state = "on" if s.battery_voltage_v < 50.0 else "off"
+            normal_temp_state = "off"
+            s.engine_state = "red" if s.engine_temp_c > TEMP_ALERT_C else normal_temp_state
+            s.chip_state = "red" if s.controller_temp_c > TEMP_ALERT_C else normal_temp_state
             # show motor current on AC readout
             s.ac_current_a = float(getattr(cs, "motor_current_a", 0.0))
         else:

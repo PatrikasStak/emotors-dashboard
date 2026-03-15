@@ -311,7 +311,7 @@ def main(reader):
     GAUGE_END_DEG = 315
     SPEED_MASK_START_DEG = 315
     SPEED_BASE_START_DEG = 225
-    SPEED_DEG_PER_UNIT = 12.6  # degrees per 1 speed unit
+    SPEED_DEG_PER_UNIT = 12.6/(10/3)  # degrees per 1 speed unit
     SPEED_VISIBLE_MAX = 16.0
     
     SPEED_START_DEG = SPEED_MASK_START_DEG
