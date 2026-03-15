@@ -52,6 +52,7 @@ class CombinedReader:
             s.controller_temp_c = float(getattr(cs, "controller_temp_c", 0.0))
             s.engine_temp_c = float(getattr(cs, "motor_temp_c", 0.0))
             s.brakes_state = "on" if getattr(cs, "brake_on", False) else "off"
+            s.reverse_active = bool(getattr(cs, "reverse_active", False))
 
             s.battery_state = "on" if s.battery_voltage_v < 50.0 else "off"
             normal_temp_state = "off"

@@ -25,6 +25,7 @@ class MockReader:
 
         s.battery_state = "on"
         s.satellite_state = "on"
+        s.reverse_active = False
         normal_temp_state = "off"
         s.engine_state = "red" if s.engine_temp_c > TEMP_ALERT_C else normal_temp_state
         s.chip_state = "red" if s.controller_temp_c > TEMP_ALERT_C else normal_temp_state

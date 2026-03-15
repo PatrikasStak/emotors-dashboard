@@ -30,6 +30,7 @@ class CANState:
     motor_temp_c: int = 0
     error_code: int = 0
     brake_on: bool = False
+    reverse_active: bool = False
 
 
 class CANReader:
@@ -106,6 +107,8 @@ class CANReader:
                 controller_temp_c = int(d[1]) - 40
                 motor_temp_c = int(d[2]) - 30
                 brake_on = (d[5] & 0x08) != 0
+                cmd = d[4] & 0x03
+                reverse_active = (cmd == 0x02)
 
                 with self._lock:
                     self._s.switch_value_v = throttle_v
@@ -113,6 +116,7 @@ class CANReader:
                     self._s.controller_temp_c = controller_temp_c
                     self._s.motor_temp_c = motor_temp_c
                     self._s.brake_on = brake_on
+                    self._s.reverse_active = reverse_active
 
             if self.debug and now >= self._dbg_next:
                 self._dbg_next = now + 1.0

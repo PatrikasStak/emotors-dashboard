@@ -389,6 +389,7 @@ def main(reader):
         battery_state = state.battery_state
         brakes_state = state.brakes_state
         satellite_state = state.satellite_state
+        reverse_active = state.reverse_active
 
         engine_state = state.engine_state
         chip_state = state.chip_state
@@ -599,10 +600,10 @@ def main(reader):
         draw_centered_text("15", (1500, 156), colors["text"], font_gauge)
         draw_centered_text("18", (1355, 164), colors["text"], font_gauge)
 
-        # 7) Speed counter centered on speed gauge
-        speed_display = int(speed_kph)
+        # 7) Drive indicator centered on speed gauge
+        drive_indicator = "P" if brakes_state == "on" else ("R" if reverse_active else "D")
         draw_centered_text(
-            f"{speed_display:02d}",
+            drive_indicator,
             (speed_center_design[0] + 100.0, speed_center_design[1]),
             colors["text"],
             font_speed,
@@ -724,6 +725,7 @@ if __name__ == "__main__":
                 battery_state = "on"
                 brakes_state = "off"
                 satellite_state = "on"
+                reverse_active = False
                 engine_state = "blue"
                 chip_state = "blue"
                 switch_state = "blue"

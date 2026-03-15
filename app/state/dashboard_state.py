@@ -18,6 +18,7 @@ class DashboardState:
     battery_state: str = "off"
     brakes_state: str = "off"
     satellite_state: str = "off"
+    reverse_active: bool = False
 
     engine_state: str = "off"
     chip_state: str = "off"
