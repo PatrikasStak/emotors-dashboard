@@ -14,7 +14,7 @@ else:
 def run():
     if IS_PI:
         can = CANReader("can0", debug=True)
-        gps = GPSReader()
+        gps = GPSReader(device="/dev/ttyUSB0", baud=115200, debug=True)
 
         can_started = False
         try:

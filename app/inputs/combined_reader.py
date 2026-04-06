@@ -73,7 +73,10 @@ class CombinedReader:
         gps_ok = False
         if self.gps is not None:
             gs = self.gps.snapshot()
-            gps_ok = (gs.last_update != 0.0 and (now - gs.last_update) < GPS_STALE_SEC)
+            gps_ok = (gs.gps_last_update != 0.0 and (now - gs.gps_last_update) < GPS_STALE_SEC)
+            if gps_ok and gs.fix_valid:
+                s.speed_kph = float(gs.speed_kph)
+                s.satellite_state = "on" if gs.satellites > 0 else "off"
 
         s.errors_text = " ".join(filter(None, [
             "No CAN Data" if not can_ok else "",
