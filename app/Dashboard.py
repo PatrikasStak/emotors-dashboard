@@ -251,7 +251,8 @@ def main(reader):
         "kw arc": load_img("assets/arcs/kw arc.png"),
         "speed arc": load_img("assets/arcs/speed arc.png"),
         "rpm arc": load_img("assets/arcs/rpm arc.png"),
-        "battery arc": load_img("assets/arcs/battery arc.png"),
+        "battery arc green": load_img("assets/arcs/battery arc green.png"),
+        "battery arc red": load_img("assets/arcs/battery arc red.png"),
         "battery icon off": load_img("assets/icons/battery off.png"),
         "battery icon on": load_img("assets/icons/battery on.png"),
         "satellite icon off": load_img("assets/icons/satellite off.png"),
@@ -555,8 +556,9 @@ def main(reader):
             base_start_deg=KW_BASE_START_DEG,
         )
 
+        battery_arc_key = "battery arc red" if battery <= 20.0 else "battery arc green"
         blit_arc_image(
-            assets["battery arc"],
+            assets[battery_arc_key],
             (kw_center_design[0] - 15.0, kw_center_design[1] + 13.0),
             min(battery, BATTERY_VISIBLE_MAX), 0.0, BATTERY_VISIBLE_MAX,
             BATTERY_START_DEG, BATTERY_END_DEG,

@@ -6,6 +6,7 @@ IS_PI = (platform.system() == "Linux") and platform.machine().startswith(("arm",
 if IS_PI:
     from inputs.can_reader import CANReader
     from inputs.gps_reader import GPSReader
+    from inputs.ina228_reader import INA228Reader
     from inputs.combined_reader import CombinedReader
 else:
     from inputs.mock_reader import MockReader
@@ -14,6 +15,7 @@ else:
 def run():
     if IS_PI:
         can = CANReader("can0", debug=True)
+        ina = INA228Reader(debug=True)
         gps = GPSReader(device="/dev/ttyUSB0", baud=115200, debug=True)
 
         can_started = False
@@ -26,8 +28,9 @@ def run():
                 can = None  # <- important: CombinedReader must handle can=None
 
             gps.start()
+            ina.start()
 
-            reader = CombinedReader(can, gps)  # CombinedReader should accept can=None
+            reader = CombinedReader(can, gps, ina)  # CombinedReader should accept can=None
             main(reader)
 
         finally:
@@ -35,6 +38,7 @@ def run():
             if can_started and can is not None:
                 can.stop()
             gps.stop()
+            ina.stop()
 
     else:
         mock = MockReader()

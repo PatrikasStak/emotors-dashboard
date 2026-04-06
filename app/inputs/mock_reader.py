@@ -14,7 +14,7 @@ class MockReader:
         s.power_kw = phase * 15
         s.rpm = phase * 6500
         s.speed_kph = phase * 20
-        s.battery_pct = 80 - phase * 10
+        s.battery_pct = phase * 100
 
         s.dc_current_a = phase * 120
         s.ac_current_a = phase * 80
