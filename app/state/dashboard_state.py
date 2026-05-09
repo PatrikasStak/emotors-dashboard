@@ -26,3 +26,11 @@ class DashboardState:
 
     switch_value_v: float = 0.0
     errors_text: str = ""
+    borto_pct: float = 0.0
+    borto_raw_v: float = 0.0
+    thruster_pct: float = 0.0
+    thruster_raw_v: float = 0.0
+    adc_ch0_v: float = 0.0
+    adc_ch1_v: float = 0.0
+    adc_ch2_v: float = 0.0
+    adc_ch3_v: float = 0.0

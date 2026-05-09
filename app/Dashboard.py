@@ -4,14 +4,17 @@ import math
 import sys
 import pygame
 import pygame.gfxdraw
+from state.runtime_tracker import RuntimeTracker
 
 
 # ----------------------------
 # Config
-from config import SPEED_FULL_SCALE_KPH, SPEED_MAX_VALUE, SPEED_UNIT
+from config import SPEED_FULL_SCALE_KPH, SPEED_MAX_VALUE, SPEED_UNIT, BAR_MODE
 # ----------------------------
 DESIGN_W, DESIGN_H = 1920, 1080   # logical design canvas
 FPS = 60
+BATTERY_ARC_SMOOTH_TAU_SEC = 0.45
+GAUGE_ARC_SMOOTH_TAU_SEC = 0.18
 
 # For development on your laptop:
 #WINDOWED = True
@@ -54,6 +57,13 @@ class Scaler:
 
 def clamp(v: float, lo: float, hi: float) -> float:
     return max(lo, min(hi, v))
+
+
+def smooth_toward(current: float | None, target: float, dt: float, tau_sec: float) -> float:
+    if current is None:
+        return target
+    alpha = 1.0 - math.exp(-dt / tau_sec)
+    return current + (target - current) * alpha
 
 
 def draw_solid_arc_ccw(
@@ -99,6 +109,17 @@ def draw_solid_arc_ccw(
     # Build polygon for the ring segment.
     pts = outer_pts + inner_pts[::-1]
     pygame.gfxdraw.filled_polygon(surface, pts, color)
+
+
+def mask_bar_image(image: pygame.Surface, fraction: float) -> pygame.Surface:
+    w, h = image.get_size()
+    mask = pygame.Surface((w, h), pygame.SRCALPHA)
+    fill_h = int(h * clamp(fraction, 0.0, 1.0))
+    if fill_h > 0:
+        pygame.draw.rect(mask, pygame.Color(255, 255, 255), (0, h - fill_h, w, fill_h))
+    masked = image.copy()
+    masked.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+    return masked
 
 
 def mask_arc_image(
@@ -227,6 +248,7 @@ def main(reader):
     
 
     clock = pygame.time.Clock()
+    runtime = RuntimeTracker()
 
     # ----------------------------
     # Load assets (once) and scale to the current screen using Scaler
@@ -268,6 +290,10 @@ def main(reader):
         "switch icon off": load_img("assets/icons/switch off.png"),
         "switch icon blue": load_img("assets/icons/switch blue.png"),
         "switch icon red": load_img("assets/icons/switch red.png"),
+        "borto left": load_img("assets/gauges/borto left.png"),
+        "borto right": load_img("assets/gauges/borto right.png"),
+        "borto bar green": load_img("assets/arcs/borto bar green.png"),
+        "borto bar red": load_img("assets/arcs/borto bar red.png"),
     }
     icon_keys = [
         "battery icon off", "battery icon on",
@@ -350,6 +376,10 @@ def main(reader):
     rpm = 0.0
     speed = 0.0
     battery = 0.0
+    power_arc = None
+    rpm_arc = None
+    speed_arc = None
+    battery_arc = None
     engine_value = 0
     chip_value = 60
     switch_value = 0
@@ -362,10 +392,14 @@ def main(reader):
     engine_state = "red"
     chip_state = "blue"
     switch_state = "red"
+    thruster_pct = 0.0
+    thruster_arc = None
+    borto_pct = 0.0
+    borto_arc = None
 
     running = True
     while running:
-        clock.tick(FPS)
+        dt = clock.tick(FPS) / 1000.0
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -382,6 +416,16 @@ def main(reader):
         # Map real speed (kph) -> your gauge units (0..12)
         speed = (speed_kph / SPEED_FULL_SCALE_KPH) * 12.0
         battery = state.battery_pct
+        power_arc = smooth_toward(power_arc, power, dt, GAUGE_ARC_SMOOTH_TAU_SEC)
+        rpm_arc = smooth_toward(rpm_arc, rpm, dt, GAUGE_ARC_SMOOTH_TAU_SEC)
+        speed_arc = smooth_toward(speed_arc, speed, dt, GAUGE_ARC_SMOOTH_TAU_SEC)
+        battery_arc = smooth_toward(battery_arc, battery, dt, BATTERY_ARC_SMOOTH_TAU_SEC)
+
+        thruster_pct = state.thruster_pct
+        thruster_arc = smooth_toward(thruster_arc, thruster_pct, dt, BATTERY_ARC_SMOOTH_TAU_SEC)
+
+        borto_pct = state.borto_pct
+        borto_arc = smooth_toward(borto_arc, borto_pct, dt, BATTERY_ARC_SMOOTH_TAU_SEC)
 
         dc_current = int(state.dc_current_a)
         ac_current = int(state.ac_current_a)
@@ -400,11 +444,18 @@ def main(reader):
         chip_value = int(state.controller_temp_c)
         switch_value = float(state.switch_value_v)
 
+        runtime.tick(dt, switch_value >= 1.0)
+
+        adc_ch0_v = state.adc_ch0_v
+        adc_ch1_v = state.adc_ch1_v
+        adc_ch2_v = state.adc_ch2_v
+        adc_ch3_v = state.adc_ch3_v
+
         # ---- Draw ----
         # 1) Background
         screen.blit(assets["bg"], (sc.off_x, sc.off_y))
 
-        # 2) PNG positions in DESIGN coordinates (you provided these)
+        # 3) PNG positions in DESIGN coordinates (you provided these)
         rpm_pos = sc.pt(70, 84)
         kw_pos = sc.pt(490, 23)
         kwbg_pos = sc.pt(490, 23)
@@ -507,6 +558,10 @@ def main(reader):
             rect = rendered.get_rect(center=sc.pt(center_design[0], center_design[1]))
             screen.blit(rendered, rect.topleft)
 
+        # ADC raw channel voltages — top left
+        for i, v in enumerate([adc_ch0_v, adc_ch1_v, adc_ch2_v, adc_ch3_v]):
+            draw_centered_text(f"A{i}: {v:.3f}V", (55, 20 + i * 30), colors["text"], font_gauge)
+
         # Radii/thickness in DESIGN units (tweak once and it scales everywhere).
         RPM_RADIUS = 330
         KW_RADIUS = 392
@@ -521,7 +576,7 @@ def main(reader):
         blit_arc_image(
             assets["rpm arc"],
             (rpm_center_design[0] - 19.0, rpm_center_design[1] + 7.0),
-            min(rpm, RPM_VISIBLE_MAX), 0.0, RPM_VISIBLE_MAX,
+            min(rpm_arc, RPM_VISIBLE_MAX), 0.0, RPM_VISIBLE_MAX,
             RPM_START_DEG, RPM_END_DEG,
             "cw",
             mask_start_deg=RPM_MASK_START_DEG,
@@ -534,7 +589,7 @@ def main(reader):
         blit_arc_image(
             assets["speed arc"],
             (speed_center_design[0] + 12.0, speed_center_design[1] + 2.0),
-            min(speed, SPEED_VISIBLE_MAX), 0.0, SPEED_VISIBLE_MAX,
+            min(speed_arc, SPEED_VISIBLE_MAX), 0.0, SPEED_VISIBLE_MAX,
             SPEED_START_DEG, SPEED_END_DEG,
             "ccw",
             mask_start_deg=SPEED_MASK_START_DEG,
@@ -549,18 +604,18 @@ def main(reader):
         blit_arc_image(
             assets["kw arc"],
             (kw_center_design[0] + 21.0, kw_center_design[1] + 10.0),
-            min(power, KW_VISIBLE_MAX), 0.0, KW_VISIBLE_MAX,
+            min(power_arc, KW_VISIBLE_MAX), 0.0, KW_VISIBLE_MAX,
             KW_START_DEG, KW_END_DEG,
             "ccw",
             mask_start_deg=KW_MASK_START_DEG,
             base_start_deg=KW_BASE_START_DEG,
         )
 
-        battery_arc_key = "battery arc red" if battery <= 20.0 else "battery arc green"
+        battery_arc_key = "battery arc red" if battery_arc <= 20.0 else "battery arc green"
         blit_arc_image(
             assets[battery_arc_key],
             (kw_center_design[0] - 15.0, kw_center_design[1] + 13.0),
-            min(battery, BATTERY_VISIBLE_MAX), 0.0, BATTERY_VISIBLE_MAX,
+            min(battery_arc, BATTERY_VISIBLE_MAX), 0.0, BATTERY_VISIBLE_MAX,
             BATTERY_START_DEG, BATTERY_END_DEG,
             "cw",
             mask_start_deg=BATTERY_MASK_START_DEG,
@@ -610,20 +665,6 @@ def main(reader):
             colors["text"],
             font_speed,
         )
-
-        # 7) KW counter (top-left)
-        kw_text = font_kw.render(f"{power:.1f}", True, colors["text"])
-        screen.blit(kw_text, sc.pt(20, 20))
-
-        # 7) RPM counter (next to KW counter)
-        rpm_display = int(clamp(rpm, *RPM_RANGE))
-        rpm_text = font_rpm.render(f"{rpm_display:05d}", True, colors["text"])
-        screen.blit(rpm_text, sc.pt(20, 70))
-
-        # 7) Battery counter (top-left)
-        battery_display = int(clamp(battery, *BATTERY_RANGE))
-        battery_text = font_battery.render(f"{battery_display:03d}", True, colors["text"])
-        screen.blit(battery_text, sc.pt(20, 120))
 
         # 7) DC/AC voltages centered on kwbg (DC above, AC below)
         draw_centered_text(
@@ -696,7 +737,19 @@ def main(reader):
             engine_text_color = colors["ring_dim"]
         draw_text_under_icon(f"{engine_value} °C", engine_rect, engine_text_color)
 
-        # 14) Errors overlay (centered at bottom)
+        # 14) Borto gauges (bar under gauge face), 170 design units from kwbg center
+        borto_left_center  = (kw_center_design[0] - 170, kw_center_design[1])
+        borto_right_center = (kw_center_design[0] + 170, kw_center_design[1])
+        if BAR_MODE in (2, 3):
+            thruster_bar = "borto bar red" if thruster_arc <= 20.0 else "borto bar green"
+            blit_centered(mask_bar_image(assets[thruster_bar], thruster_arc / 100.0), borto_left_center)
+            blit_centered(assets["borto left"], borto_left_center)
+        if BAR_MODE in (1, 3):
+            borto_bar = "borto bar red" if borto_arc <= 20.0 else "borto bar green"
+            blit_centered(mask_bar_image(assets[borto_bar], borto_arc / 100.0), borto_right_center)
+            blit_centered(assets["borto right"], borto_right_center)
+
+        # 15) Errors overlay (centered at bottom)
         errors_rect = assets["errors"].get_rect(midbottom=sc.pt(DESIGN_W / 2, DESIGN_H - 10))
         screen.blit(assets["errors"], errors_rect.topleft)
         # After drawing errors overlay:
@@ -706,8 +759,13 @@ def main(reader):
             screen.blit(rendered, r.topleft)
 
 
+        # Top-right: trip and total runtime
+        draw_centered_text(f"TRIP   {runtime.trip_str}",  (1760, 20), colors["text"], font_gauge)
+        draw_centered_text(f"TOTAL  {runtime.total_str}", (1760, 50), colors["text"], font_gauge)
+
         pygame.display.flip()
 
+    runtime.save()
     pygame.quit()
     sys.exit(0)
 
@@ -715,7 +773,6 @@ def main(reader):
 if __name__ == "__main__":
     class _LocalMockReader:
         def snapshot(self):
-            # Minimal object with the attributes you read below.
             class S:
                 power_kw = 5.0
                 rpm = 1200.0
@@ -734,6 +791,14 @@ if __name__ == "__main__":
                 engine_temp_c = 45.0
                 controller_temp_c = 40.0
                 switch_value_v = 12.5
+                borto_pct = 50.0
+                borto_raw_v = 2.5
+                thruster_pct = 50.0
+                thruster_raw_v = 2.5
+                adc_ch0_v = 2.5
+                adc_ch1_v = 0.02
+                adc_ch2_v = 2.5
+                adc_ch3_v = 0.03
             return S()
 
     main(_LocalMockReader())

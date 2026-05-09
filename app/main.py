@@ -7,6 +7,7 @@ if IS_PI:
     from inputs.can_reader import CANReader
     from inputs.gps_reader import GPSReader
     from inputs.ina228_reader import INA228Reader
+    from inputs.ads1115_reader import ADS1115Reader
     from inputs.combined_reader import CombinedReader
 else:
     from inputs.mock_reader import MockReader
@@ -17,6 +18,7 @@ def run():
         can = CANReader("can0", debug=True)
         ina = INA228Reader(debug=True)
         gps = GPSReader(device="/dev/ttyUSB0", baud=115200, debug=True)
+        adc = ADS1115Reader(address=0x48, debug=True)
 
         can_started = False
         try:
@@ -29,8 +31,9 @@ def run():
 
             gps.start()
             ina.start()
+            adc.start()
 
-            reader = CombinedReader(can, gps, ina)  # CombinedReader should accept can=None
+            reader = CombinedReader(can, gps, ina, adc)
             main(reader)
 
         finally:
@@ -39,6 +42,7 @@ def run():
                 can.stop()
             gps.stop()
             ina.stop()
+            adc.stop()
 
     else:
         mock = MockReader()

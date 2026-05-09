@@ -32,4 +32,13 @@ class MockReader:
         s.switch_value_v = 5 + phase * 7
         s.switch_state = "blue" if s.switch_value_v > 1.0 else "off"
 
+        s.borto_pct     = (math.sin(t * 0.4) + 1) / 2 * 100
+        s.borto_raw_v   = 2.5
+        s.thruster_pct  = (math.sin(t * 0.4 + math.pi) + 1) / 2 * 100
+        s.thruster_raw_v = 2.5
+        s.adc_ch0_v = 2.5
+        s.adc_ch1_v = 0.02
+        s.adc_ch2_v = 2.5
+        s.adc_ch3_v = 0.03
+
         return s
