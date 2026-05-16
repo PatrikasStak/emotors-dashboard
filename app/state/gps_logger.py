@@ -20,11 +20,12 @@ class GpsLogger:
     def _open(self, log_dir: str) -> None:
         try:
             os.makedirs(log_dir, exist_ok=True)
-            ts = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-            path = os.path.join(log_dir, f"gps_{ts}.csv")
-            self._file = open(path, "w", newline="", buffering=1)
+            path = os.path.join(log_dir, "gps.csv")
+            new_file = not os.path.exists(path)
+            self._file = open(path, "a", newline="", buffering=1)
             self._writer = csv.writer(self._file)
-            self._writer.writerow(["timestamp", "latitude", "longitude", "speed_kph", "satellites"])
+            if new_file:
+                self._writer.writerow(["timestamp", "latitude", "longitude", "speed_kph", "satellites"])
         except Exception as e:
             print(f"GpsLogger: could not open log file: {e}")
 
