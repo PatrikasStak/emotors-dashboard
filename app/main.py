@@ -1,5 +1,23 @@
+import os
+import sys
 import platform
 from Dashboard import main
+
+_PID_FILE = "/tmp/emotors_dashboard.pid"
+
+def _check_single_instance():
+    if os.path.exists(_PID_FILE):
+        try:
+            pid = int(open(_PID_FILE).read().strip())
+            os.kill(pid, 0)  # check if process is alive
+            print(f"Dashboard already running (pid {pid}), exiting.")
+            sys.exit(0)
+        except (ProcessLookupError, ValueError):
+            pass  # stale pid file
+    with open(_PID_FILE, "w") as f:
+        f.write(str(os.getpid()))
+
+_check_single_instance()
 
 IS_PI = (platform.system() == "Linux") and platform.machine().startswith(("arm", "aarch64"))
 
@@ -47,6 +65,11 @@ def run():
     else:
         mock = MockReader()
         main(mock)
+
+    try:
+        os.remove(_PID_FILE)
+    except Exception:
+        pass
 
 
 if __name__ == "__main__":
