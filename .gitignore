@@ -1,0 +1,8 @@
+app/logs/
+app/runtime.json
+app/runtime.json.tmp
+
+__pycache__/
+*.pyc
+venv/
+.DS_Store

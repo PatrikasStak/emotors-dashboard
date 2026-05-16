@@ -34,3 +34,7 @@ class DashboardState:
     adc_ch1_v: float = 0.0
     adc_ch2_v: float = 0.0
     adc_ch3_v: float = 0.0
+    adc_ch0_raw_v: float = 0.0
+    adc_ch1_raw_v: float = 0.0
+    adc_ch2_raw_v: float = 0.0
+    adc_ch3_raw_v: float = 0.0

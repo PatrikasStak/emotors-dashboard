@@ -36,6 +36,10 @@ class ADS1115State:
     ch1: float = 0.0
     ch2: float = 0.0
     ch3: float = 0.0
+    ch0_raw: float = 0.0
+    ch1_raw: float = 0.0
+    ch2_raw: float = 0.0
+    ch3_raw: float = 0.0
 
 
 class ADS1115Reader:
@@ -104,6 +108,7 @@ class ADS1115Reader:
                 with self._lock:
                     self._s.last_update = now
                     self._s.ch0, self._s.ch1, self._s.ch2, self._s.ch3 = averaged
+                    self._s.ch0_raw, self._s.ch1_raw, self._s.ch2_raw, self._s.ch3_raw = raw
 
                 if self.debug and now >= self._dbg_next:
                     self._dbg_next = now + 1.0

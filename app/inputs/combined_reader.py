@@ -8,8 +8,9 @@ GPS_STALE_SEC = 2.0
 INA_STALE_SEC = 1.0
 ADS_STALE_SEC = 1.0
 
-ADC_MULTIPLIER = 6.0  # resistor divider ratio
-ADC_MIN_RAW_V  = 1.0  # below this → sensor not connected
+ADC_MULTIPLIER      = 5.0
+BORTO_MIN_RAW_V     = 11.6 / ADC_MULTIPLIER  # ~1.933 V — floor of _BORTO_SOC table
+THRUSTER_MIN_RAW_V  = 12.0 / ADC_MULTIPLIER  # ~2.000 V — floor of _THRUSTER_SOC table
 
 _BORTO_SOC = [
     (11.6,   0.0), (11.8,  20.0), (12.0,  40.0),
@@ -51,24 +52,34 @@ class CombinedReader:
         self.adc = adc_reader
         self._battery_voltage_samples = deque()
         self._stable_battery_voltage_v = 0.0
+        self._borto_voltage_samples = deque()
+        self._stable_borto_raw_v = 0.0
+        self._thruster_voltage_samples = deque()
+        self._stable_thruster_raw_v = 0.0
 
-    def _update_stable_battery_voltage(self, now: float, voltage_v: float, throttle_v: float) -> float:
+    def _update_stable_voltage(self, samples: deque, current_stable: float,
+                                now: float, raw_v: float, throttle_v: float) -> float:
         cutoff = now - BATTERY_AVG_WINDOW_SEC
-        while self._battery_voltage_samples and self._battery_voltage_samples[0][0] < cutoff:
-            self._battery_voltage_samples.popleft()
+        while samples and samples[0][0] < cutoff:
+            samples.popleft()
 
-        if voltage_v <= 0.0:
-            return self._stable_battery_voltage_v
+        if raw_v <= 0.0:
+            return current_stable
 
         if throttle_v < BATTERY_IDLE_THROTTLE_MAX_V:
-            self._battery_voltage_samples.append((now, voltage_v))
+            samples.append((now, raw_v))
 
-        if self._battery_voltage_samples:
-            total = sum(v for _, v in self._battery_voltage_samples)
-            self._stable_battery_voltage_v = total / len(self._battery_voltage_samples)
-        elif self._stable_battery_voltage_v == 0.0:
-            self._stable_battery_voltage_v = voltage_v
+        if samples:
+            return sum(v for _, v in samples) / len(samples)
+        elif current_stable == 0.0:
+            return raw_v
+        return current_stable
 
+    def _update_stable_battery_voltage(self, now: float, voltage_v: float, throttle_v: float) -> float:
+        self._stable_battery_voltage_v = self._update_stable_voltage(
+            self._battery_voltage_samples, self._stable_battery_voltage_v,
+            now, voltage_v, throttle_v,
+        )
         return self._stable_battery_voltage_v
 
     def snapshot(self) -> DashboardState:
@@ -164,10 +175,22 @@ class CombinedReader:
                 s.adc_ch1_v = ads.ch1
                 s.adc_ch2_v = ads.ch2
                 s.adc_ch3_v = ads.ch3
-                if borto_raw > ADC_MIN_RAW_V:
-                    s.borto_pct = _voltage_to_soc(borto_raw * ADC_MULTIPLIER, _BORTO_SOC)
-                if thruster_raw > ADC_MIN_RAW_V:
-                    s.thruster_pct = _voltage_to_soc(thruster_raw * ADC_MULTIPLIER, _THRUSTER_SOC)
+                s.adc_ch0_raw_v = ads.ch0_raw
+                s.adc_ch1_raw_v = ads.ch1_raw
+                s.adc_ch2_raw_v = ads.ch2_raw
+                s.adc_ch3_raw_v = ads.ch3_raw
+                if borto_raw >= BORTO_MIN_RAW_V:
+                    self._stable_borto_raw_v = self._update_stable_voltage(
+                        self._borto_voltage_samples, self._stable_borto_raw_v,
+                        now, borto_raw, s.switch_value_v,
+                    )
+                    s.borto_pct = _voltage_to_soc(self._stable_borto_raw_v * ADC_MULTIPLIER, _BORTO_SOC)
+                if thruster_raw >= THRUSTER_MIN_RAW_V:
+                    self._stable_thruster_raw_v = self._update_stable_voltage(
+                        self._thruster_voltage_samples, self._stable_thruster_raw_v,
+                        now, thruster_raw, s.switch_value_v,
+                    )
+                    s.thruster_pct = _voltage_to_soc(self._stable_thruster_raw_v * ADC_MULTIPLIER, _THRUSTER_SOC)
 
         s.errors_text = " ".join(filter(None, [
             "No CAN Data" if not can_ok else "",

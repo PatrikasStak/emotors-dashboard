@@ -34,8 +34,12 @@ class RuntimeTracker:
 
     def save(self) -> None:
         try:
-            with open(self.path, "w") as f:
+            tmp = self.path + ".tmp"
+            with open(tmp, "w") as f:
                 json.dump({"trip_s": self._trip_s, "total_s": self._total_s}, f, indent=2)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(tmp, self.path)
         except Exception:
             pass
 

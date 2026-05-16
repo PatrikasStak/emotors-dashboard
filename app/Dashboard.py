@@ -5,6 +5,7 @@ import sys
 import pygame
 import pygame.gfxdraw
 from state.runtime_tracker import RuntimeTracker
+from state.gps_logger import GpsLogger
 
 
 # ----------------------------
@@ -249,6 +250,7 @@ def main(reader):
 
     clock = pygame.time.Clock()
     runtime = RuntimeTracker()
+    gps_logger = GpsLogger()
 
     # ----------------------------
     # Load assets (once) and scale to the current screen using Scaler
@@ -445,11 +447,17 @@ def main(reader):
         switch_value = float(state.switch_value_v)
 
         runtime.tick(dt, switch_value >= 1.0)
+        if reader.gps is not None:
+            gps_logger.tick(reader.gps.snapshot())
 
         adc_ch0_v = state.adc_ch0_v
         adc_ch1_v = state.adc_ch1_v
         adc_ch2_v = state.adc_ch2_v
         adc_ch3_v = state.adc_ch3_v
+        adc_ch0_raw_v = state.adc_ch0_raw_v
+        adc_ch1_raw_v = state.adc_ch1_raw_v
+        adc_ch2_raw_v = state.adc_ch2_raw_v
+        adc_ch3_raw_v = state.adc_ch3_raw_v
 
         # ---- Draw ----
         # 1) Background
@@ -558,9 +566,13 @@ def main(reader):
             rect = rendered.get_rect(center=sc.pt(center_design[0], center_design[1]))
             screen.blit(rendered, rect.topleft)
 
-        # ADC raw channel voltages — top left
-        for i, v in enumerate([adc_ch0_v, adc_ch1_v, adc_ch2_v, adc_ch3_v]):
-            draw_centered_text(f"A{i}: {v:.3f}V", (55, 20 + i * 30), colors["text"], font_gauge)
+        # ADC averaged + raw voltages — top left
+        for i, (avg, raw) in enumerate(zip(
+            [adc_ch0_v, adc_ch1_v, adc_ch2_v, adc_ch3_v],
+            [adc_ch0_raw_v, adc_ch1_raw_v, adc_ch2_raw_v, adc_ch3_raw_v],
+        )):
+            draw_centered_text(f"A{i}: {avg:.3f}V", (55, 20 + i * 50), colors["text"], font_gauge)
+            draw_centered_text(f"    {raw:.3f}V", (55, 38 + i * 50), colors["ring_dim"], font_gauge)
 
         # Radii/thickness in DESIGN units (tweak once and it scales everywhere).
         RPM_RADIUS = 330
@@ -766,6 +778,7 @@ def main(reader):
         pygame.display.flip()
 
     runtime.save()
+    gps_logger.close()
     pygame.quit()
     sys.exit(0)
 
