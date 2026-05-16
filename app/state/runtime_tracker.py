@@ -55,6 +55,10 @@ class RuntimeTracker:
     def reset_trip(self) -> None:
         self._trip_s = 0.0
 
+    def reset_total(self) -> None:
+        self._trip_s = 0.0
+        self._total_s = 0.0
+
     @property
     def trip_str(self) -> str:
         return _fmt(self._trip_s)

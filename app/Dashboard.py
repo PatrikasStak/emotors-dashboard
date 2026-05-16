@@ -6,6 +6,7 @@ import pygame
 import pygame.gfxdraw
 from state.runtime_tracker import RuntimeTracker
 from state.gps_logger import GpsLogger
+from state.drive_handler import DriveHandler
 
 
 # ----------------------------
@@ -251,6 +252,7 @@ def main(reader):
     clock = pygame.time.Clock()
     runtime = RuntimeTracker()
     gps_logger = GpsLogger()
+    drive_handler = DriveHandler(runtime, gps_logger)
 
     # ----------------------------
     # Load assets (once) and scale to the current screen using Scaler
@@ -449,6 +451,7 @@ def main(reader):
         runtime.tick(dt, switch_value >= 1.0)
         if reader.gps is not None:
             gps_logger.tick(reader.gps.snapshot())
+        drive_handler.tick()
 
         adc_ch0_v = state.adc_ch0_v
         adc_ch1_v = state.adc_ch1_v
