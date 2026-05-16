@@ -1,5 +1,5 @@
 import os
-os.system("unclutter -idle 0 &")
+os.system("unclutter -idle 0 >/dev/null 2>&1 &")
 import math
 import sys
 import pygame
