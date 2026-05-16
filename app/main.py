@@ -19,6 +19,9 @@ def _check_single_instance():
 
 _check_single_instance()
 
+import atexit
+atexit.register(lambda: os.path.exists(_PID_FILE) and os.remove(_PID_FILE))
+
 IS_PI = (platform.system() == "Linux") and platform.machine().startswith(("arm", "aarch64"))
 
 if IS_PI:
@@ -66,10 +69,6 @@ def run():
         mock = MockReader()
         main(mock)
 
-    try:
-        os.remove(_PID_FILE)
-    except Exception:
-        pass
 
 
 if __name__ == "__main__":
