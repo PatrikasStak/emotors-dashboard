@@ -11,7 +11,7 @@ from state.drive_handler import DriveHandler
 
 # ----------------------------
 # Config
-from config import SPEED_FULL_SCALE_KPH, SPEED_MAX_VALUE, SPEED_UNIT, BAR_MODE
+from config import SPEED_FULL_SCALE_KPH, SPEED_MAX_VALUE, SPEED_UNIT, BAR_MODE, OIL_CHANGE_HOURS
 # ----------------------------
 DESIGN_W, DESIGN_H = 1920, 1080   # logical design canvas
 FPS = 60
@@ -294,6 +294,8 @@ def main(reader):
         "switch icon off": load_img("assets/icons/switch off.png"),
         "switch icon blue": load_img("assets/icons/switch blue.png"),
         "switch icon red": load_img("assets/icons/switch red.png"),
+        "oil change off": load_img("assets/icons/oil change off.png"),
+        "oil change red": load_img("assets/icons/oil change red.png"),
         "borto left": load_img("assets/gauges/borto left.png"),
         "borto right": load_img("assets/gauges/borto right.png"),
         "borto bar green": load_img("assets/arcs/borto bar green.png"),
@@ -752,7 +754,14 @@ def main(reader):
             engine_text_color = colors["ring_dim"]
         draw_text_under_icon(f"{engine_value} °C", engine_rect, engine_text_color)
 
-        # 14) Borto gauges (bar under gauge face), 170 design units from kwbg center
+        # 14) Oil change icon (center of RPM gauge, 20 design units left)
+        if OIL_CHANGE_HOURS > 0:
+            oil_key = "oil change red" if runtime.total_hours >= OIL_CHANGE_HOURS else "oil change off"
+            oil_center_px = sc.pt(rpm_center_design[0] - 20.0, rpm_center_design[1])
+            oil_rect = assets[oil_key].get_rect(center=oil_center_px)
+            screen.blit(assets[oil_key], oil_rect.topleft)
+
+        # 15) Borto gauges (bar under gauge face), 170 design units from kwbg center
         borto_left_center  = (kw_center_design[0] - 170, kw_center_design[1])
         borto_right_center = (kw_center_design[0] + 170, kw_center_design[1])
         if BAR_MODE in (2, 3):

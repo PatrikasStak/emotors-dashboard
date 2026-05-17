@@ -60,6 +60,10 @@ class RuntimeTracker:
         self._total_s = 0.0
 
     @property
+    def total_hours(self) -> float:
+        return self._total_s / 3600.0
+
+    @property
     def trip_str(self) -> str:
         return _fmt(self._trip_s)
 

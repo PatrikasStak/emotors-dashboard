@@ -12,3 +12,6 @@ SPEED_MAX_VALUE = 12.0 #dead code
 
 # 0 = no bars, 1 = borto only, 2 = thruster only, 3 = both
 BAR_MODE = 3
+
+# Oil change reminder. 0 = disabled, any positive number = hours until alert
+OIL_CHANGE_HOURS = 100
