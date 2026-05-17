@@ -665,12 +665,12 @@ def main(reader):
 
         # 7) Speed gauge numbers
         draw_centered_text("0", (1671, 720), colors["text"], font_gauge)
-        draw_centered_text("3", (1752, 598), colors["text"], font_gauge)
-        draw_centered_text("6", (1775, 451), colors["text"], font_gauge)
-        draw_centered_text("9", (1727, 311), colors["text"], font_gauge)
-        draw_centered_text("12", (1629, 209), colors["text"], font_gauge)
-        draw_centered_text("15", (1500, 156), colors["text"], font_gauge)
-        draw_centered_text("18", (1355, 164), colors["text"], font_gauge)
+        draw_centered_text("2", (1752, 598), colors["text"], font_gauge)
+        draw_centered_text("4", (1775, 451), colors["text"], font_gauge)
+        draw_centered_text("6", (1727, 311), colors["text"], font_gauge)
+        draw_centered_text("8", (1629, 209), colors["text"], font_gauge)
+        draw_centered_text("10", (1500, 156), colors["text"], font_gauge)
+        draw_centered_text("12", (1355, 164), colors["text"], font_gauge)
 
         # 7) Drive indicator centered on speed gauge
         drive_indicator = "P" if brakes_state == "on" else ("R" if reverse_active else "D")
