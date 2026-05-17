@@ -12,7 +12,7 @@ from state.drive_handler import DriveHandler
 
 # ----------------------------
 # Config
-from config import SPEED_FULL_SCALE_KPH, SPEED_MAX_VALUE, SPEED_UNIT, BAR_MODE, OIL_CHANGE_HOURS
+from config import SPEED_FULL_SCALE_KPH, SPEED_MAX_VALUE, SPEED_UNIT, BAR_MODE, OIL_CHANGE_HOURS, IS_PI
 # ----------------------------
 DESIGN_W, DESIGN_H = 1920, 1080   # logical design canvas
 FPS = 60
@@ -431,6 +431,12 @@ def main(reader):
     _daytime_cache = True
     _daytime_check_t = 0.0
 
+    _moon_r = sc.s(18)
+    _moon_surf = pygame.Surface((_moon_r * 3, _moon_r * 3), pygame.SRCALPHA)
+    _moon_color = pygame.Color(200, 200, 160)
+    pygame.draw.circle(_moon_surf, _moon_color, (_moon_r, _moon_r), _moon_r)
+    pygame.draw.circle(_moon_surf, pygame.Color(0, 0, 0, 255), (_moon_r + _moon_r // 3, _moon_r - _moon_r // 6), int(_moon_r * 0.85))
+
     running = True
     while running:
         dt = clock.tick(FPS) / 1000.0
@@ -495,6 +501,7 @@ def main(reader):
 
         # ---- Draw ----
         # 1) Background
+        screen.fill((0, 0, 0))
         screen.blit(assets["bg"], (sc.off_x, sc.off_y))
 
         # 3) PNG positions in DESIGN coordinates (you provided these)
@@ -872,12 +879,17 @@ def main(reader):
             screen.blit(rendered, rendered.get_rect(center=(box_x + box_w // 2, box_y + box_h // 2)).topleft)
 
         _daytime_check_t += dt
-        if _daytime_check_t >= 60.0:
+        if not IS_PI:
+            if _daytime_check_t >= 5.0:
+                _daytime_check_t = 0.0
+                _daytime_cache = not _daytime_cache
+        elif _daytime_check_t >= 60.0:
             _daytime_check_t = 0.0
             if state.latitude != 0.0 or state.longitude != 0.0:
                 _daytime_cache = _is_daytime(state.latitude, state.longitude, state.gps_utc)
         if not _daytime_cache:
             screen.blit(_dim_surf, (0, 0))
+            screen.blit(_moon_surf, _moon_surf.get_rect(topright=(screen.get_width() - sc.s(10), sc.s(10))).topleft)
 
         pygame.display.flip()
 
