@@ -6,6 +6,7 @@ import threading
 import time
 import termios
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Optional
 
 
@@ -75,6 +76,7 @@ class GPSState:
     longitude: float = 0.0
     satellites: int = 0
     raw_sentence: str = ""
+    gps_utc: Optional[datetime] = None
 
 
 class GPSReader:
@@ -140,12 +142,26 @@ class GPSReader:
             self._s.raw_sentence = raw
 
     def _parse_rmc(self, fields: list[str]) -> None:
-        # RMC: time, status, lat, N/S, lon, E/W, speed(knots)
+        # RMC: time, status, lat, N/S, lon, E/W, speed(knots), course, date
         if len(fields) < 8:
             return
         status = fields[2].strip() if len(fields) > 2 else ""
         fix_valid = status == "A"
         self._update_fix(fix_valid)
+
+        try:
+            t_str = fields[1].strip()
+            d_str = fields[9].strip() if len(fields) > 9 else ""
+            if t_str and d_str and len(t_str) >= 6 and len(d_str) == 6:
+                utc_dt = datetime(
+                    2000 + int(d_str[4:6]), int(d_str[2:4]), int(d_str[0:2]),
+                    int(t_str[0:2]), int(t_str[2:4]), int(t_str[4:6]),
+                    tzinfo=timezone.utc,
+                )
+                with self._lock:
+                    self._s.gps_utc = utc_dt
+        except Exception:
+            pass
 
         if not fix_valid:
             return

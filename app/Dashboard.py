@@ -3,6 +3,7 @@ os.system("unclutter -idle 0 >/dev/null 2>&1 &")
 import math
 import sys
 import pygame
+from datetime import datetime, timezone
 import pygame.gfxdraw
 from state.runtime_tracker import RuntimeTracker
 from state.gps_logger import GpsLogger
@@ -230,6 +231,20 @@ def screen_px_to_design(sc: Scaler, pos: tuple[int, int]) -> tuple[float, float]
     return ((pos[0] - sc.off_x) / sc.scale, (pos[1] - sc.off_y) / sc.scale)
 
 
+def _is_daytime(lat: float, lon: float, utc_dt=None) -> bool:
+    now = utc_dt if utc_dt is not None else datetime.now(timezone.utc)
+    doy = now.timetuple().tm_yday
+    decl = math.radians(23.45 * math.sin(math.radians(360 / 365 * (doy - 81))))
+    b = math.radians(360 / 365 * (doy - 81))
+    eot_min = 9.87 * math.sin(2 * b) - 7.53 * math.cos(b) - 1.5 * math.sin(b)
+    solar_noon = 12.0 - lon / 15.0 - eot_min / 60.0
+    utc_h = now.hour + now.minute / 60.0 + now.second / 3600.0
+    hour_angle = math.radians(15.0 * (utc_h - solar_noon))
+    lat_r = math.radians(lat)
+    sin_elev = math.sin(lat_r) * math.sin(decl) + math.cos(lat_r) * math.cos(decl) * math.cos(hour_angle)
+    return math.degrees(math.asin(max(-1.0, min(1.0, sin_elev)))) > 0
+
+
 # ----------------------------
 # Main
 # ----------------------------
@@ -409,6 +424,12 @@ def main(reader):
     _error_idx = 0
     _error_t = 0.0
     _ERROR_CYCLE_SEC = 2.0
+
+    _dim_surf = pygame.Surface((screen.get_width(), screen.get_height()))
+    _dim_surf.fill((0, 0, 0))
+    _dim_surf.set_alpha(51)  # 20%
+    _daytime_cache = True
+    _daytime_check_t = 0.0
 
     running = True
     while running:
@@ -849,6 +870,14 @@ def main(reader):
             pygame.draw.rect(screen, pygame.Color(255, 255, 255),  (box_x, box_y, box_w, box_h), sc.s(3))
             rendered = font_large.render(notif, True, pygame.Color(255, 255, 255))
             screen.blit(rendered, rendered.get_rect(center=(box_x + box_w // 2, box_y + box_h // 2)).topleft)
+
+        _daytime_check_t += dt
+        if _daytime_check_t >= 60.0:
+            _daytime_check_t = 0.0
+            if state.latitude != 0.0 or state.longitude != 0.0:
+                _daytime_cache = _is_daytime(state.latitude, state.longitude, state.gps_utc)
+        if not _daytime_cache:
+            screen.blit(_dim_surf, (0, 0))
 
         pygame.display.flip()
 

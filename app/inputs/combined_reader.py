@@ -183,6 +183,9 @@ class CombinedReader:
                 self._last_speed_kph = s.speed_kph
                 self._gps_lost_at = 0.0
                 s.satellite_state = "on" if gs.satellites > 0 else "off"
+                s.latitude = gs.latitude
+                s.longitude = gs.longitude
+                s.gps_utc = gs.gps_utc
             else:
                 if self._gps_lost_at == 0.0:
                     self._gps_lost_at = now

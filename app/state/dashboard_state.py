@@ -1,5 +1,6 @@
 # app/state/dashboard_state.py
 from dataclasses import dataclass, field
+from typing import Optional
 
 @dataclass
 class DashboardState:
@@ -26,6 +27,9 @@ class DashboardState:
 
     switch_value_v: float = 0.0
     errors: list = field(default_factory=list)
+    latitude: float = 0.0
+    longitude: float = 0.0
+    gps_utc: Optional[object] = None
     borto_pct: float = 0.0
     borto_raw_v: float = 0.0
     thruster_pct: float = 0.0
