@@ -710,7 +710,7 @@ def main(reader):
         # 9) Brakes icon
         screen.blit(
             assets[f"brakes icon {brakes_state} small"],
-            sc.pt(rpm_center_design[0] - 50.0, 620),
+            sc.pt(rpm_center_design[0] - 60.0, 620),
         )
 
         # 10) Satellite icon
@@ -730,7 +730,7 @@ def main(reader):
         draw_text_under_icon(f"{switch_value:.2f} V", switch_rect, switch_text_color)
 
         # 12) Chip temperature icon
-        chip_pos = sc.pt(rpm_center_design[0] - 50.0, 250)
+        chip_pos = sc.pt(rpm_center_design[0] - 60.0, 250)
         chip_rect = assets[f"chip icon {chip_state} small"].get_rect(topleft=chip_pos)
         screen.blit(assets[f"chip icon {chip_state} small"], chip_rect.topleft)
         chip_text_color = colors["text"]
@@ -743,7 +743,7 @@ def main(reader):
         draw_text_under_icon(f"{chip_value} °C", chip_rect, chip_text_color)
 
         # 13) Motor temperature icon
-        engine_center_px = sc.pt(rpm_center_design[0] - 175.0, rpm_center_design[1] - 90.0)
+        engine_center_px = sc.pt(rpm_center_design[0] - 200.0, rpm_center_design[1])
         engine_rect = assets[f"engine icon {engine_state} small"].get_rect(center=engine_center_px)
         screen.blit(assets[f"engine icon {engine_state} small"], engine_rect.topleft)
         engine_text_color = colors["text"]
@@ -758,7 +758,7 @@ def main(reader):
         # 14) Oil change icon (center of RPM gauge, 20 design units left)
         if OIL_CHANGE_HOURS > 0:
             oil_key = "oil change red" if runtime.total_hours >= OIL_CHANGE_HOURS else "oil change off"
-            oil_center_px = sc.pt(rpm_center_design[0] - 175.0, rpm_center_design[1]+90.0)
+            oil_center_px = sc.pt(rpm_center_design[0] - 30.0, rpm_center_design[1])
             oil_rect = assets[f"{oil_key} small"].get_rect(center=oil_center_px)
             screen.blit(assets[f"{oil_key} small"], oil_rect.topleft)
 
