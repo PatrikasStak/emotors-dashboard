@@ -57,7 +57,8 @@ BAT_V_MIN = 48.0
 BAT_V_MAX = 58.0
 BATTERY_AVG_WINDOW_SEC = 20.0
 BATTERY_IDLE_THROTTLE_MAX_V = 1.0
-TEMP_ALERT_C = 75.0
+MOTOR_TEMP_ALERT_C = 80.0
+CONTROLLER_TEMP_ALERT_C = 70.0
 GPS_ERROR_DELAY_SEC = 4.0
 
 class CombinedReader:
@@ -129,8 +130,8 @@ class CombinedReader:
             s.reverse_active = bool(getattr(cs, "reverse_active", False))
 
             normal_temp_state = "off"
-            s.engine_state = "red" if s.engine_temp_c > TEMP_ALERT_C else normal_temp_state
-            s.chip_state = "red" if s.controller_temp_c > TEMP_ALERT_C else normal_temp_state
+            s.engine_state = "red" if s.engine_temp_c > MOTOR_TEMP_ALERT_C else normal_temp_state
+            s.chip_state = "red" if s.controller_temp_c > CONTROLLER_TEMP_ALERT_C else normal_temp_state
             # show motor current on AC readout
             s.ac_current_a = float(getattr(cs, "motor_current_a", 0.0))
         else:

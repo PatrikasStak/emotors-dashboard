@@ -3,7 +3,8 @@ import time
 import math
 from state.dashboard_state import DashboardState
 
-TEMP_ALERT_C = 75.0
+MOTOR_TEMP_ALERT_C = 80.0
+CONTROLLER_TEMP_ALERT_C = 70.0
 
 class MockReader:
     gps = None
@@ -29,8 +30,8 @@ class MockReader:
         s.satellite_state = "on"
         s.reverse_active = False
         normal_temp_state = "off"
-        s.engine_state = "red" if s.engine_temp_c > TEMP_ALERT_C else normal_temp_state
-        s.chip_state = "red" if s.controller_temp_c > TEMP_ALERT_C else normal_temp_state
+        s.engine_state = "red" if s.engine_temp_c > MOTOR_TEMP_ALERT_C else normal_temp_state
+        s.chip_state = "red" if s.controller_temp_c > CONTROLLER_TEMP_ALERT_C else normal_temp_state
         s.switch_value_v = 5 + phase * 7
         s.switch_state = "blue" if s.switch_value_v > 1.0 else "off"
 

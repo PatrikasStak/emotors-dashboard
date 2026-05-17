@@ -579,13 +579,6 @@ def main(reader):
             rect = rendered.get_rect(center=sc.pt(center_design[0], center_design[1]))
             screen.blit(rendered, rect.topleft)
 
-        # ADC averaged + raw voltages — top left
-        for i, (avg, raw) in enumerate(zip(
-            [adc_ch0_v, adc_ch1_v, adc_ch2_v, adc_ch3_v],
-            [adc_ch0_raw_v, adc_ch1_raw_v, adc_ch2_raw_v, adc_ch3_raw_v],
-        )):
-            draw_centered_text(f"A{i}: {avg:.3f}V", (55, 20 + i * 50), colors["text"], font_gauge)
-            draw_centered_text(f"    {raw:.3f}V", (55, 38 + i * 50), colors["ring_dim"], font_gauge)
 
         # Radii/thickness in DESIGN units (tweak once and it scales everywhere).
         RPM_RADIUS = 330
@@ -839,9 +832,12 @@ def main(reader):
             screen.blit(rendered, r.topleft)
 
 
-        # Top-right: trip and total runtime
-        draw_centered_text(f"TRIP   {runtime.trip_str}",  (1760, 20), colors["text"], font_gauge)
-        draw_centered_text(f"TOTAL  {runtime.total_str}", (1760, 50), colors["text"], font_gauge)
+        # Trip / total runtime anchored to errors box top edge
+        pad = sc.s(10)
+        trip_surf = font_gauge.render(f"TRIP  {runtime.trip_str}", True, colors["text"])
+        screen.blit(trip_surf, trip_surf.get_rect(bottomleft=(errors_rect.left + pad, errors_rect.top - pad)).topleft)
+        total_surf = font_gauge.render(f"TOTAL  {runtime.total_str}", True, colors["text"])
+        screen.blit(total_surf, total_surf.get_rect(bottomright=(errors_rect.right - pad, errors_rect.top - pad)).topleft)
 
         # Notification overlay
         notif = drive_handler.notification
