@@ -56,7 +56,9 @@ class GpsLogger:
         try:
             self.close()
             if os.path.exists(self._path):
-                shutil.copy2(self._path, dest_dir)
+                ts = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+                dest = os.path.join(dest_dir, f"gps_{ts}.csv")
+                shutil.copy2(self._path, dest)
                 with open(self._path, "w", newline="") as f:
                     csv.writer(f).writerow(_HEADER)
         except Exception as e:
