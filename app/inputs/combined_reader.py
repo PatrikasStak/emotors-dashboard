@@ -58,12 +58,15 @@ BAT_V_MAX = 58.0
 BATTERY_AVG_WINDOW_SEC = 20.0
 BATTERY_IDLE_THROTTLE_MAX_V = 1.0
 TEMP_ALERT_C = 75.0
+GPS_ERROR_DELAY_SEC = 4.0
 
 class CombinedReader:
     def __init__(self, can_reader, gps_reader, ina_reader=None, adc_reader=None):
         self.can = can_reader
         self.gps = gps_reader
         self.ina = ina_reader
+        self._gps_lost_at: float = 0.0
+        self._last_speed_kph: float = 0.0
         self.adc = adc_reader
         self._battery_voltage_samples = deque()
         self._stable_battery_voltage_v = 0.0
@@ -168,7 +171,7 @@ class CombinedReader:
         else:
             s.battery_state = "off"
 
-        s.speed_kph = 0.0
+        s.speed_kph = self._last_speed_kph
         s.satellite_state = "off"
         gps_ok = False
         if self.gps is not None:
@@ -176,7 +179,12 @@ class CombinedReader:
             gps_ok = (gs.gps_last_update != 0.0 and (now - gs.gps_last_update) < GPS_STALE_SEC)
             if gps_ok and gs.fix_valid:
                 s.speed_kph = float(gs.speed_kph)
+                self._last_speed_kph = s.speed_kph
+                self._gps_lost_at = 0.0
                 s.satellite_state = "on" if gs.satellites > 0 else "off"
+            else:
+                if self._gps_lost_at == 0.0:
+                    self._gps_lost_at = now
 
         if self.adc is not None:
             ads = self.adc.snapshot()
@@ -210,7 +218,8 @@ class CombinedReader:
         errors = []
         if not can_ok:
             errors.append("No CAN")
-        if not gps_ok:
+        gps_gone = (now - self._gps_lost_at) if self._gps_lost_at > 0.0 else 0.0
+        if not gps_ok and gps_gone >= GPS_ERROR_DELAY_SEC:
             errors.append("No GPS")
         if self.ina is not None and not ina_ok:
             errors.append("No INA")
