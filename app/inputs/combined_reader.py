@@ -168,7 +168,7 @@ class CombinedReader:
             )
             pct = (stable_battery_voltage_v - BAT_V_MIN) / (BAT_V_MAX - BAT_V_MIN) * 100.0
             s.battery_pct = max(0.0, min(100.0, pct))
-            s.battery_state = "on" if s.battery_voltage_v < 50.0 else "off"
+            s.battery_state = "on" if s.battery_pct < 25.0 else "off"
         else:
             s.battery_state = "off"
 
