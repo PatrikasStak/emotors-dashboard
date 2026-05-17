@@ -1,7 +1,7 @@
 # app/config.py
 import platform
 
-IS_PI = platform.machine().startswith("arm") and platform.system() == "Linux"
+IS_PI = platform.system() == "Linux"
 
 FPS = 60
 CAN_BITRATE = 250000

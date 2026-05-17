@@ -1,5 +1,6 @@
 import os
 os.system("unclutter -idle 0 >/dev/null 2>&1 &")
+import array
 import math
 import sys
 import pygame
@@ -245,10 +246,24 @@ def _is_daytime(lat: float, lon: float, utc_dt=None) -> bool:
     return math.degrees(math.asin(max(-1.0, min(1.0, sin_elev)))) > 0
 
 
+def _generate_beep(freq=880, duration=0.25, volume=0.5, sample_rate=44100):
+    n = int(sample_rate * duration)
+    fade = int(sample_rate * 0.01)
+    buf = array.array('h')
+    for i in range(n):
+        t = i / sample_rate
+        env = min(i / fade, 1.0, (n - i) / fade)
+        val = int(32767 * volume * env * math.sin(2 * math.pi * freq * t))
+        buf.append(val)
+        buf.append(val)  # stereo
+    return pygame.mixer.Sound(buffer=buf)
+
+
 # ----------------------------
 # Main
 # ----------------------------
 def main(reader):
+    pygame.mixer.pre_init(44100, -16, 2, 512)
     pygame.init()
     pygame.display.init()
     pygame.display.set_caption("Dashboard Base")
@@ -421,6 +436,10 @@ def main(reader):
     borto_pct = 0.0
     borto_arc = None
 
+    _beep = _generate_beep()
+    _prev_alerts: set = set()
+    _beep_cooldown = 0.0
+
     _error_idx = 0
     _error_t = 0.0
     _ERROR_CYCLE_SEC = 2.0
@@ -485,6 +504,19 @@ def main(reader):
         switch_value = float(state.switch_value_v)
 
         _error_t += dt
+        _beep_cooldown = max(0.0, _beep_cooldown - dt)
+        current_alerts: set = set(state.errors)
+        if state.engine_state == "red":
+            current_alerts.add("_engine_red")
+        if state.chip_state == "red":
+            current_alerts.add("_chip_red")
+        if state.battery_state == "on":
+            current_alerts.add("_battery_low")
+        if current_alerts - _prev_alerts and _beep_cooldown <= 0.0:
+            _beep.play()
+            _beep_cooldown = 5.0
+        _prev_alerts = current_alerts
+
         runtime.tick(dt, switch_value >= 1.0)
         if reader.gps is not None:
             gps_logger.tick(reader.gps.snapshot())
