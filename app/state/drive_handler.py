@@ -3,10 +3,12 @@ from __future__ import annotations
 import os
 import subprocess
 import threading
+import time
 
 _FLAG_TRIPRESET  = "/tmp/emotors_TRIPRESET"
 _FLAG_TOTALRESET = "/tmp/emotors_TOTALRESET"
 _FLAG_LOGSDRIVE  = "/tmp/emotors_LOGSDRIVE"
+_NOTIFICATION_DURATION = 3.0
 
 
 class DriveHandler:
@@ -14,6 +16,18 @@ class DriveHandler:
         self._runtime = runtime
         self._gps_logger = gps_logger
         self._exporting = False
+        self._notification_msg: str | None = None
+        self._notification_until: float = 0.0
+
+    @property
+    def notification(self) -> str | None:
+        if self._notification_msg and time.monotonic() < self._notification_until:
+            return self._notification_msg
+        return None
+
+    def _notify(self, msg: str) -> None:
+        self._notification_msg = msg
+        self._notification_until = time.monotonic() + _NOTIFICATION_DURATION
 
     def tick(self) -> None:
         try:
@@ -82,6 +96,7 @@ class DriveHandler:
 
             self._gps_logger.export_and_clear(mount_point)
             print(f"DriveHandler: logs exported to {mount_point}")
+            self._notify("Logs Exported")
 
         except Exception as e:
             print(f"DriveHandler: export error: {e}")

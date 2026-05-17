@@ -778,6 +778,17 @@ def main(reader):
         draw_centered_text(f"TRIP   {runtime.trip_str}",  (1760, 20), colors["text"], font_gauge)
         draw_centered_text(f"TOTAL  {runtime.total_str}", (1760, 50), colors["text"], font_gauge)
 
+        # Notification overlay
+        notif = drive_handler.notification
+        if notif:
+            box_w, box_h = sc.s(DESIGN_W // 2), sc.s(DESIGN_H // 2)
+            box_x = (screen.get_width()  - box_w) // 2
+            box_y = (screen.get_height() - box_h) // 2
+            pygame.draw.rect(screen, pygame.Color(0, 0, 0),       (box_x, box_y, box_w, box_h))
+            pygame.draw.rect(screen, pygame.Color(255, 255, 255),  (box_x, box_y, box_w, box_h), sc.s(3))
+            rendered = font_large.render(notif, True, pygame.Color(255, 255, 255))
+            screen.blit(rendered, rendered.get_rect(center=(box_x + box_w // 2, box_y + box_h // 2)).topleft)
+
         pygame.display.flip()
 
     runtime.save()
