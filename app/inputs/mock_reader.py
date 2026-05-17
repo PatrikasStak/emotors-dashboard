@@ -6,6 +6,8 @@ from state.dashboard_state import DashboardState
 TEMP_ALERT_C = 75.0
 
 class MockReader:
+    gps = None
+
     def snapshot(self) -> DashboardState:
         t = time.time()
         phase = (math.sin(t) + 1) / 2
