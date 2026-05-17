@@ -427,7 +427,7 @@ def main(reader):
 
     _dim_surf = pygame.Surface((screen.get_width(), screen.get_height()))
     _dim_surf.fill((0, 0, 0))
-    _dim_surf.set_alpha(51)  # 20%
+    _dim_surf.set_alpha(89)  # 35%
     _daytime_cache = True
     _daytime_check_t = 0.0
 
