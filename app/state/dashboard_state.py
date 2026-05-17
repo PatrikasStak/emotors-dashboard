@@ -1,5 +1,5 @@
 # app/state/dashboard_state.py
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 @dataclass
 class DashboardState:
@@ -25,7 +25,7 @@ class DashboardState:
     switch_state: str = "off"
 
     switch_value_v: float = 0.0
-    errors_text: str = ""
+    errors: list = field(default_factory=list)
     borto_pct: float = 0.0
     borto_raw_v: float = 0.0
     thruster_pct: float = 0.0

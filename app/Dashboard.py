@@ -331,6 +331,8 @@ def main(reader):
     }
 
     font = pygame.font.Font(None, 20)
+    font_tiny = pygame.font.Font(None, 25)
+    font_bar_label = pygame.font.Font(None, 29)
     font_large = pygame.font.Font(None, 50)
     font_voltage = pygame.font.Font(None, 40)
     font_gauge = pygame.font.Font(None, 30)
@@ -404,6 +406,10 @@ def main(reader):
     borto_pct = 0.0
     borto_arc = None
 
+    _error_idx = 0
+    _error_t = 0.0
+    _ERROR_CYCLE_SEC = 2.0
+
     running = True
     while running:
         dt = clock.tick(FPS) / 1000.0
@@ -451,6 +457,7 @@ def main(reader):
         chip_value = int(state.controller_temp_c)
         switch_value = float(state.switch_value_v)
 
+        _error_t += dt
         runtime.tick(dt, switch_value >= 1.0)
         if reader.gps is not None:
             gps_logger.tick(reader.gps.snapshot())
@@ -774,12 +781,60 @@ def main(reader):
             blit_centered(mask_bar_image(assets[borto_bar], borto_arc / 100.0), borto_right_center)
             blit_centered(assets["borto right"], borto_right_center)
 
+        bar_h = assets["borto bar green"].get_height()
+        bar_w = assets["borto bar green"].get_width()
+        bar_center_y = sc.pt(0, borto_left_center[1])[1]
+        bar_top = bar_center_y - bar_h // 2
+        bar_bottom = bar_center_y + bar_h // 2
+        for label, frac in [("80", 0.2), ("60", 0.4), ("40", 0.6), ("20", 0.8)]:
+            rendered = font_tiny.render(label, True, colors["text"])
+            label_y = int(bar_top + frac * bar_h) + 1
+            if BAR_MODE in (2, 3):
+                cx = sc.pt(borto_left_center[0], 0)[0]
+                screen.blit(rendered, rendered.get_rect(midright=(cx - bar_w // 2 - 3, label_y)).topleft)
+            if BAR_MODE in (1, 3):
+                cx = sc.pt(borto_right_center[0], 0)[0]
+                screen.blit(rendered, rendered.get_rect(midleft=(cx + bar_w // 2 + 3, label_y)).topleft)
+
+        if BAR_MODE in (2, 3):
+            cx_left = sc.pt(borto_left_center[0], 0)[0]
+            fe = font_bar_label.render("Fe", True, colors["text"])
+            screen.blit(fe, fe.get_rect(midbottom=(cx_left, bar_top - 4)).topleft)
+            pct_l = font_bar_label.render("%", True, colors["text"])
+            screen.blit(pct_l, pct_l.get_rect(midtop=(cx_left, bar_bottom + 4)).topleft)
+        if BAR_MODE in (1, 3):
+            cx_right = sc.pt(borto_right_center[0], 0)[0]
+            pb = font_bar_label.render("Pb", True, colors["text"])
+            screen.blit(pb, pb.get_rect(midbottom=(cx_right, bar_top - 4)).topleft)
+            pct_r = font_bar_label.render("%", True, colors["text"])
+            screen.blit(pct_r, pct_r.get_rect(midtop=(cx_right, bar_bottom + 4)).topleft)
+
         # 15) Errors overlay (centered at bottom)
         errors_rect = assets["errors"].get_rect(midbottom=sc.pt(DESIGN_W / 2, DESIGN_H - 10))
         screen.blit(assets["errors"], errors_rect.topleft)
-        # After drawing errors overlay:
-        if hasattr(state, "errors_text") and state.errors_text.strip():
-            rendered = font_gauge.render(state.errors_text.strip(), True, colors["text_red"])
+        active_errors = state.errors if state.errors else []
+        if active_errors:
+            box_w = errors_rect.width - sc.s(24)
+            pages, cur = [], []
+            for err in active_errors:
+                test = "   ".join(cur + [err])
+                if font_gauge.size(test)[0] <= box_w:
+                    cur.append(err)
+                else:
+                    if cur:
+                        pages.append(cur)
+                    cur = [err]
+            if cur:
+                pages.append(cur)
+            if len(pages) > 1:
+                if _error_t >= _ERROR_CYCLE_SEC:
+                    _error_idx = (_error_idx + 1) % len(pages)
+                    _error_t = 0.0
+                page = pages[_error_idx % len(pages)]
+            else:
+                page = pages[0]
+            err_text = "   ".join(page)
+            rendered = font_gauge.render(err_text, True, colors["text_red"])
             r = rendered.get_rect(center=errors_rect.center)
             screen.blit(rendered, r.topleft)
 
@@ -828,6 +883,7 @@ if __name__ == "__main__":
                 engine_temp_c = 45.0
                 controller_temp_c = 40.0
                 switch_value_v = 12.5
+                errors = []
                 borto_pct = 50.0
                 borto_raw_v = 2.5
                 thruster_pct = 50.0

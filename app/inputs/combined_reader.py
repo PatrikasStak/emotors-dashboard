@@ -35,6 +35,21 @@ def _voltage_to_soc(voltage: float, table: list) -> float:
             return s0 + t * (s1 - s0)
     return table[-1][1]
 
+_KLS_ERRORS = {
+    0:  "ID Error",
+    1:  "Over Volt",
+    2:  "Low Volt",
+    4:  "Stall",
+    5:  "Int Volts",
+    6:  "Ctrl Temp",
+    7:  "Throttle Err",
+    9:  "Int Reset",
+    10: "Hall Throttle",
+    11: "Angle Sensor",
+    14: "Motor Temp",
+    15: "Hall Sensor",
+}
+
 POWER_DEADBAND_A = 0.8
 RPM_DEADBAND = 30.0
 
@@ -192,9 +207,17 @@ class CombinedReader:
                     )
                     s.thruster_pct = _voltage_to_soc(self._stable_thruster_raw_v * ADC_MULTIPLIER, _THRUSTER_SOC)
 
-        s.errors_text = " ".join(filter(None, [
-            "No CAN Data" if not can_ok else "",
-            "No GPS Data" if not gps_ok else "",
-            "No INA Data" if (self.ina is not None and not ina_ok) else "",
-        ]))
+        errors = []
+        if not can_ok:
+            errors.append("No CAN")
+        if not gps_ok:
+            errors.append("No GPS")
+        if self.ina is not None and not ina_ok:
+            errors.append("No INA")
+        if can_ok and cs is not None:
+            code = cs.error_code
+            for bit, name in _KLS_ERRORS.items():
+                if code & (1 << bit):
+                    errors.append(name)
+        s.errors = errors
         return s
