@@ -13,7 +13,7 @@ from state.drive_handler import DriveHandler
 
 # ----------------------------
 # Config
-from config import SPEED_FULL_SCALE_KPH, SPEED_MAX_VALUE, SPEED_UNIT, BAR_MODE, OIL_CHANGE_HOURS, IS_PI
+from config import SPEED_FULL_SCALE_KPH, SPEED_MAX_VALUE, SPEED_UNIT, BAR_MODE, OIL_CHANGE_HOURS, IS_PI, KW_FULL_SCALE_KW
 # ----------------------------
 DESIGN_W, DESIGN_H = 1920, 1080   # logical design canvas
 FPS = 60
@@ -361,7 +361,7 @@ def main(reader):
     }
 
     font = pygame.font.Font(None, 20)
-    font_tiny = pygame.font.Font(None, 25)
+    font_tiny = pygame.font.Font(None, 22)
     font_bar_label = pygame.font.Font(None, 29)
     font_large = pygame.font.Font(None, 50)
     font_voltage = pygame.font.Font(None, 40)
@@ -411,7 +411,7 @@ def main(reader):
     DEBUG_FORCE_FULL_ARCS = False
 
     # Dummy values (replace later with CAN/GPS)
-    power = 6.0
+    power = 0.0
     rpm = 0.0
     speed = 0.0
     battery = 0.0
@@ -468,12 +468,13 @@ def main(reader):
         # ----------------------------
         state = reader.snapshot()
 
-        power = state.power_kw
         rpm = state.rpm
 
         speed_kph = state.speed_kph
         # Map real speed (kph) -> your gauge units (0..12)
         speed = (speed_kph / SPEED_FULL_SCALE_KPH) * 12.0
+        # Map real kW -> gauge units (full scale = 8.0 gauge units on the image)
+        power = (state.power_kw / KW_FULL_SCALE_KW) * 8.0
         battery = state.battery_pct
         power_arc = smooth_toward(power_arc, power, dt, GAUGE_ARC_SMOOTH_TAU_SEC)
         rpm_arc = smooth_toward(rpm_arc, rpm, dt, GAUGE_ARC_SMOOTH_TAU_SEC)
@@ -534,6 +535,7 @@ def main(reader):
         # ---- Draw ----
         # 1) Background
         screen.fill((0, 0, 0))
+
         screen.blit(assets["bg"], (sc.off_x, sc.off_y))
 
         # 3) PNG positions in DESIGN coordinates (you provided these)
@@ -720,11 +722,12 @@ def main(reader):
         draw_centered_text("6", (550, 160), colors["text"], font_gauge)
 
         # 7) KW gauge numbers
-        draw_centered_text("0", (1222, 764), colors["text"], font_gauge)
-        draw_centered_text("2", (1317, 608), colors["text"], font_gauge)
-        draw_centered_text("4", (1335, 420), colors["text"], font_gauge)
-        draw_centered_text("6", (1262, 254), colors["text"], font_gauge)
-        draw_centered_text("8", (1124, 138), colors["text"], font_gauge)
+        _kw_step = KW_FULL_SCALE_KW / 4
+        draw_centered_text("0",                          (1222, 764), colors["text"], font_gauge)
+        draw_centered_text(str(int(_kw_step)),           (1317, 608), colors["text"], font_gauge)
+        draw_centered_text(str(int(_kw_step * 2)),       (1335, 420), colors["text"], font_gauge)
+        draw_centered_text(str(int(_kw_step * 3)),       (1262, 254), colors["text"], font_gauge)
+        draw_centered_text(str(int(KW_FULL_SCALE_KW)),   (1124, 138), colors["text"], font_gauge)
 
         # 7) Speed gauge numbers
         draw_centered_text("0", (1671, 720), colors["text"], font_gauge)
@@ -764,9 +767,6 @@ def main(reader):
             font_voltage,
         )
 
-        # 8) Battery icon
-        screen.blit(assets[f"battery icon {battery_state} small"], sc.pt(900, 200))
-
         # 9) Brakes icon
         screen.blit(
             assets[f"brakes icon {brakes_state} small"],
@@ -798,8 +798,6 @@ def main(reader):
             chip_text_color = colors["text_blue"]
         elif chip_state == "red":
             chip_text_color = colors["text_red"]
-        elif chip_state == "off":
-            chip_text_color = colors["ring_dim"]
         draw_text_under_icon(f"{chip_value} °C", chip_rect, chip_text_color)
 
         # 13) Motor temperature icon
@@ -811,8 +809,6 @@ def main(reader):
             engine_text_color = colors["text_blue"]
         elif engine_state == "red":
             engine_text_color = colors["text_red"]
-        elif engine_state == "off":
-            engine_text_color = colors["ring_dim"]
         draw_text_under_icon(f"{engine_value} °C", engine_rect, engine_text_color)
 
         # 14) Oil change icon (center of RPM gauge, 20 design units left)
@@ -844,10 +840,10 @@ def main(reader):
             label_y = int(bar_top + frac * bar_h) + 1
             if BAR_MODE in (2, 3):
                 cx = sc.pt(borto_left_center[0], 0)[0]
-                screen.blit(rendered, rendered.get_rect(center=(cx + sc.s(6), label_y)).topleft)
+                screen.blit(rendered, rendered.get_rect(center=(cx, label_y)).topleft)
             if BAR_MODE in (1, 3):
                 cx = sc.pt(borto_right_center[0], 0)[0]
-                screen.blit(rendered, rendered.get_rect(center=(cx - sc.s(6), label_y)).topleft)
+                screen.blit(rendered, rendered.get_rect(center=(cx, label_y)).topleft)
 
         if BAR_MODE in (2, 3):
             cx_left = sc.pt(borto_left_center[0], 0)[0]
@@ -891,6 +887,9 @@ def main(reader):
             r = rendered.get_rect(center=errors_rect.center)
             screen.blit(rendered, r.topleft)
 
+
+        if not IS_PI:
+            draw_centered_text(f"{state.power_kw:.1f} kW", (60, 20), colors["text"], font_gauge)
 
         # Trip / total runtime anchored to errors box top edge
         pad = sc.s(10)
