@@ -519,7 +519,7 @@ def main(reader):
 
         runtime.tick(dt, switch_value >= 1.0)
         if reader.gps is not None:
-            gps_logger.tick(reader.gps.snapshot())
+            gps_logger.tick(state, reader.gps.snapshot())
         drive_handler.tick()
 
         adc_ch0_v = state.adc_ch0_v
@@ -844,10 +844,10 @@ def main(reader):
             label_y = int(bar_top + frac * bar_h) + 1
             if BAR_MODE in (2, 3):
                 cx = sc.pt(borto_left_center[0], 0)[0]
-                screen.blit(rendered, rendered.get_rect(midright=(cx - bar_w // 2 - 3, label_y)).topleft)
+                screen.blit(rendered, rendered.get_rect(center=(cx + sc.s(6), label_y)).topleft)
             if BAR_MODE in (1, 3):
                 cx = sc.pt(borto_right_center[0], 0)[0]
-                screen.blit(rendered, rendered.get_rect(midleft=(cx + bar_w // 2 + 3, label_y)).topleft)
+                screen.blit(rendered, rendered.get_rect(center=(cx - sc.s(6), label_y)).topleft)
 
         if BAR_MODE in (2, 3):
             cx_left = sc.pt(borto_left_center[0], 0)[0]

@@ -8,7 +8,12 @@ from datetime import datetime, timezone
 
 _LOG_INTERVAL = 1.0  # seconds between log entries
 _LOG_PATH = os.path.join(os.path.dirname(__file__), "..", "logs", "gps.csv")
-_HEADER = ["timestamp", "latitude", "longitude", "speed_kph", "satellites"]
+_HEADER = [
+    "timestamp", "latitude", "longitude", "speed_kph", "satellites",
+    "rpm", "power_kw", "dc_current_a", "ac_current_a",
+    "battery_voltage_v", "switch_voltage_v", "borto_raw_v", "thruster_raw_v",
+    "errors",
+]
 
 
 class GpsLogger:
@@ -31,7 +36,7 @@ class GpsLogger:
         except Exception as e:
             print(f"GpsLogger: could not open log file: {e}")
 
-    def tick(self, gps_state) -> None:
+    def tick(self, state, gps_state) -> None:
         if self._writer is None:
             return
         now = time.monotonic()
@@ -48,6 +53,15 @@ class GpsLogger:
                 f"{gps_state.longitude:.7f}",
                 f"{gps_state.speed_kph:.2f}",
                 gps_state.satellites,
+                f"{state.rpm:.0f}",
+                f"{state.power_kw:.2f}",
+                f"{state.dc_current_a:.1f}",
+                f"{state.ac_current_a:.1f}",
+                f"{state.battery_voltage_v:.1f}",
+                f"{state.switch_value_v:.2f}",
+                f"{state.borto_raw_v:.3f}",
+                f"{state.thruster_raw_v:.3f}",
+                "|".join(state.errors) if state.errors else "",
             ])
         except Exception:
             pass
