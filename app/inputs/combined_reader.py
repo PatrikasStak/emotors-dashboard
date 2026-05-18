@@ -2,6 +2,7 @@ from __future__ import annotations
 from collections import deque
 import time
 from state.dashboard_state import DashboardState
+from config import SPEED_MAX_VALID_KPH, GPS_MIN_SATELLITES
 
 CAN_BUS_STALE_SEC = 1.5
 GPS_STALE_SEC = 2.0
@@ -179,13 +180,15 @@ class CombinedReader:
             gs = self.gps.snapshot()
             gps_ok = (gs.gps_last_update != 0.0 and (now - gs.gps_last_update) < GPS_STALE_SEC)
             if gps_ok and gs.fix_valid:
-                s.speed_kph = float(gs.speed_kph)
-                self._last_speed_kph = s.speed_kph
-                self._gps_lost_at = 0.0
                 s.satellite_state = "on" if gs.satellites > 0 else "off"
                 s.latitude = gs.latitude
                 s.longitude = gs.longitude
                 s.gps_utc = gs.gps_utc
+                raw_speed = float(gs.speed_kph)
+                if gs.satellites >= GPS_MIN_SATELLITES and raw_speed <= SPEED_MAX_VALID_KPH:
+                    s.speed_kph = raw_speed
+                    self._last_speed_kph = s.speed_kph
+                    self._gps_lost_at = 0.0
             else:
                 if self._gps_lost_at == 0.0:
                     self._gps_lost_at = now

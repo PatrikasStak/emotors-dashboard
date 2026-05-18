@@ -9,6 +9,8 @@ CAN_BITRATE = 250000
 SPEED_UNIT = "kph"
 SPEED_FULL_SCALE_KPH = 12.0
 SPEED_MAX_VALUE = 12.0 #dead code
+SPEED_MAX_VALID_KPH = 20.0
+GPS_MIN_SATELLITES = 30
 KW_FULL_SCALE_KW = 20.0
 
 # 0 = no bars, 1 = borto only, 2 = thruster only, 3 = both

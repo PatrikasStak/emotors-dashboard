@@ -793,7 +793,7 @@ def main(reader):
         chip_pos = sc.pt(rpm_center_design[0] - 60.0, 250)
         chip_rect = assets[f"chip icon {chip_state} small"].get_rect(topleft=chip_pos)
         screen.blit(assets[f"chip icon {chip_state} small"], chip_rect.topleft)
-        chip_text_color = colors["text"]
+        chip_text_color = pygame.Color(55, 55, 55)
         if chip_state == "blue":
             chip_text_color = colors["text_blue"]
         elif chip_state == "red":
@@ -804,7 +804,7 @@ def main(reader):
         engine_center_px = sc.pt(rpm_center_design[0] - 200.0, rpm_center_design[1])
         engine_rect = assets[f"engine icon {engine_state} small"].get_rect(center=engine_center_px)
         screen.blit(assets[f"engine icon {engine_state} small"], engine_rect.topleft)
-        engine_text_color = colors["text"]
+        engine_text_color = pygame.Color(55, 55, 55)
         if engine_state == "blue":
             engine_text_color = colors["text_blue"]
         elif engine_state == "red":
