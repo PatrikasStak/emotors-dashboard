@@ -14,4 +14,4 @@ SPEED_MAX_VALUE = 12.0 #dead code
 BAR_MODE = 3
 
 # Oil change reminder. 0 = disabled, any positive number = hours until alert
-OIL_CHANGE_HOURS = 100
+OIL_CHANGE_HOURS = 0
