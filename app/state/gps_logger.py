@@ -11,7 +11,7 @@ _LOG_PATH = os.path.join(os.path.dirname(__file__), "..", "logs", "gps.csv")
 _HEADER = [
     "timestamp", "latitude", "longitude", "speed_kph", "satellites",
     "rpm", "power_kw", "dc_current_a", "ac_current_a",
-    "battery_voltage_v", "switch_voltage_v", "borto_raw_v", "thruster_raw_v",
+    "battery_voltage_v", "joystick_voltage_v", "borto_raw_v", "thruster_raw_v",
     "errors",
 ]
 
