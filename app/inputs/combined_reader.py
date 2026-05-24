@@ -165,8 +165,7 @@ class CombinedReader:
             ina_ok = (ins.last_update != 0.0 and (now - ins.last_update) < INA_STALE_SEC)
 
         if ina_ok and ins is not None:
-            if not can_ok:
-                s.dc_current_a = float(ins.current_a)
+            s.dc_current_a = float(ins.current_a)
             if not can_ok or s.battery_voltage_v == 0.0:
                 s.battery_voltage_v = float(ins.voltage_v)
 
@@ -245,7 +244,8 @@ class CombinedReader:
                         self._borto_voltage_samples, self._stable_borto_raw_v,
                         now, borto_raw, s.switch_value_v,
                     )
-                    s.borto_pct = _voltage_to_soc(self._stable_borto_raw_v * ADC_MULTIPLIER, _BORTO_SOC)
+                    if self._borto_low_since == 0.0:
+                        s.borto_pct = _voltage_to_soc(self._stable_borto_raw_v * ADC_MULTIPLIER, _BORTO_SOC)
                 else:
                     self._borto_high_since = 0.0
                     if self._borto_low_since == 0.0:
@@ -253,7 +253,6 @@ class CombinedReader:
                     if now - self._borto_low_since >= 3.0:
                         self._stable_borto_raw_v = 0.0
                         self._borto_voltage_samples.clear()
-                        s.borto_pct = 0.0
 
                 if thruster_raw >= THRUSTER_MIN_RAW_V:
                     if self._thruster_high_since == 0.0:
@@ -264,7 +263,8 @@ class CombinedReader:
                         self._thruster_voltage_samples, self._stable_thruster_raw_v,
                         now, thruster_raw, s.switch_value_v,
                     )
-                    s.thruster_pct = _voltage_to_soc(self._stable_thruster_raw_v * ADC_MULTIPLIER, _THRUSTER_SOC)
+                    if self._thruster_low_since == 0.0:
+                        s.thruster_pct = _voltage_to_soc(self._stable_thruster_raw_v * ADC_MULTIPLIER, _THRUSTER_SOC)
                 else:
                     self._thruster_high_since = 0.0
                     if self._thruster_low_since == 0.0:
@@ -272,7 +272,6 @@ class CombinedReader:
                     if now - self._thruster_low_since >= 3.0:
                         self._stable_thruster_raw_v = 0.0
                         self._thruster_voltage_samples.clear()
-                        s.thruster_pct = 0.0
 
         errors = []
         if not can_ok:

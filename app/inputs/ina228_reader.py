@@ -23,8 +23,8 @@ class INA228Reader:
         self,
         bus: int = 1,
         address: int = 0x40,
-        shunt_ohms: float = 0.00075,
-        current_lsb: float = 0.003,
+        shunt_ohms: float = 0.00015,
+        current_lsb: float = 0.016,
         debug: bool = False,
     ):
         self.bus = bus
