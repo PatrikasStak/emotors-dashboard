@@ -57,6 +57,7 @@ RPM_DEADBAND = 30.0
 BAT_V_MIN = 48.0
 BAT_V_MAX = 58.0
 BATTERY_AVG_WINDOW_SEC = 20.0
+CURRENT_AVG_WINDOW_SEC = 3.0
 BATTERY_IDLE_THROTTLE_MAX_V = 1.0
 BATTERY_FREEZE_SEC = 120.0
 MOTOR_TEMP_ALERT_C = 80.0
@@ -74,6 +75,8 @@ class CombinedReader:
         self._battery_voltage_samples = deque()
         self._stable_battery_voltage_v = 0.0
         self._bat_throttle_started: float = 0.0
+        self._dc_samples: deque = deque()
+        self._ac_samples: deque = deque()
         self._borto_voltage_samples = deque()
         self._stable_borto_raw_v = 0.0
         self._borto_low_since: float = 0.0
@@ -169,6 +172,16 @@ class CombinedReader:
 
         if abs(s.dc_current_a) < POWER_DEADBAND_A:
             s.dc_current_a = 0.0
+
+        cutoff = now - CURRENT_AVG_WINDOW_SEC
+        self._dc_samples.append((now, s.dc_current_a))
+        self._ac_samples.append((now, s.ac_current_a))
+        while self._dc_samples and self._dc_samples[0][0] < cutoff:
+            self._dc_samples.popleft()
+        while self._ac_samples and self._ac_samples[0][0] < cutoff:
+            self._ac_samples.popleft()
+        s.dc_current_a = sum(v for _, v in self._dc_samples) / len(self._dc_samples)
+        s.ac_current_a = sum(v for _, v in self._ac_samples) / len(self._ac_samples)
 
         if s.battery_voltage_v != 0.0:
             measured_battery_voltage_v = s.battery_voltage_v
