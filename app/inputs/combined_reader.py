@@ -58,6 +58,7 @@ BAT_V_MIN = 48.0
 BAT_V_MAX = 58.0
 BATTERY_AVG_WINDOW_SEC = 20.0
 BATTERY_IDLE_THROTTLE_MAX_V = 1.0
+BATTERY_FREEZE_SEC = 30.0
 MOTOR_TEMP_ALERT_C = 80.0
 CONTROLLER_TEMP_ALERT_C = 70.0
 GPS_ERROR_DELAY_SEC = 4.0
@@ -72,6 +73,7 @@ class CombinedReader:
         self.adc = adc_reader
         self._battery_voltage_samples = deque()
         self._stable_battery_voltage_v = 0.0
+        self._bat_throttle_started: float = 0.0
         self._borto_voltage_samples = deque()
         self._stable_borto_raw_v = 0.0
         self._thruster_voltage_samples = deque()
@@ -96,9 +98,17 @@ class CombinedReader:
         return current_stable
 
     def _update_stable_battery_voltage(self, now: float, voltage_v: float, throttle_v: float) -> float:
+        if throttle_v >= BATTERY_IDLE_THROTTLE_MAX_V:
+            if self._bat_throttle_started == 0.0:
+                self._bat_throttle_started = now
+            frozen = (now - self._bat_throttle_started) < BATTERY_FREEZE_SEC
+        else:
+            self._bat_throttle_started = 0.0
+            frozen = False
+        effective_throttle = throttle_v if frozen else 0.0
         self._stable_battery_voltage_v = self._update_stable_voltage(
             self._battery_voltage_samples, self._stable_battery_voltage_v,
-            now, voltage_v, throttle_v,
+            now, voltage_v, effective_throttle,
         )
         return self._stable_battery_voltage_v
 
