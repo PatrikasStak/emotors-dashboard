@@ -223,8 +223,8 @@ class CombinedReader:
             ads = self.adc.snapshot()
             ads_ok = (ads.last_update != 0.0 and (now - ads.last_update) < ADS_STALE_SEC)
             if ads_ok:
-                borto_raw    = ads.ch0
-                thruster_raw = ads.ch3
+                borto_raw    = ads.ch0_raw
+                thruster_raw = ads.ch3_raw
                 s.borto_raw_v    = borto_raw
                 s.thruster_raw_v = thruster_raw
                 s.adc_ch0_v = ads.ch0
