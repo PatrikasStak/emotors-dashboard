@@ -79,10 +79,8 @@ class CombinedReader:
         self._ac_samples: deque = deque()
         self._borto_voltage_samples = deque()
         self._stable_borto_raw_v = 0.0
-        self._borto_low_since: float = 0.0
         self._thruster_voltage_samples = deque()
         self._stable_thruster_raw_v = 0.0
-        self._thruster_low_since: float = 0.0
 
     def _update_stable_voltage(self, samples: deque, current_stable: float,
                                 now: float, raw_v: float, throttle_v: float) -> float:
@@ -231,33 +229,21 @@ class CombinedReader:
                 s.adc_ch1_raw_v = ads.ch1_raw
                 s.adc_ch2_raw_v = ads.ch2_raw
                 s.adc_ch3_raw_v = ads.ch3_raw
-                if ads.ch0_raw >= BORTO_MIN_RAW_V:
-                    self._borto_low_since = 0.0
+                if ads.ch0 >= BORTO_MIN_RAW_V:
                     self._stable_borto_raw_v = self._update_stable_voltage(
                         self._borto_voltage_samples, self._stable_borto_raw_v,
                         now, ads.ch0, s.switch_value_v,
                     )
+                if self._stable_borto_raw_v > 0.0:
                     s.borto_pct = _voltage_to_soc(self._stable_borto_raw_v * ADC_MULTIPLIER, _BORTO_SOC)
-                else:
-                    if self._borto_low_since == 0.0:
-                        self._borto_low_since = now
-                    if now - self._borto_low_since >= 3.0:
-                        self._stable_borto_raw_v = 0.0
-                        self._borto_voltage_samples.clear()
 
-                if ads.ch3_raw >= THRUSTER_MIN_RAW_V:
-                    self._thruster_low_since = 0.0
+                if ads.ch3 >= THRUSTER_MIN_RAW_V:
                     self._stable_thruster_raw_v = self._update_stable_voltage(
                         self._thruster_voltage_samples, self._stable_thruster_raw_v,
                         now, ads.ch3, s.switch_value_v,
                     )
+                if self._stable_thruster_raw_v > 0.0:
                     s.thruster_pct = _voltage_to_soc(self._stable_thruster_raw_v * ADC_MULTIPLIER, _THRUSTER_SOC)
-                else:
-                    if self._thruster_low_since == 0.0:
-                        self._thruster_low_since = now
-                    if now - self._thruster_low_since >= 3.0:
-                        self._stable_thruster_raw_v = 0.0
-                        self._thruster_voltage_samples.clear()
 
         errors = []
         if not can_ok:
