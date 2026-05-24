@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 _MA_WINDOW = 10   # moving average window size
-_MIN_V     = 1.0  # discard readings below this voltage as noise
+_MIN_V     = 1.0  # readings below this are noise; push 0.0 to evict stale values
 
 ADS_CONV_REG = 0x00
 ADS_CONF_REG = 0x01
@@ -100,6 +100,8 @@ class ADS1115Reader:
                 for ch, v in enumerate(raw):
                     if v >= _MIN_V:
                         self._ma[ch].append(v)
+                    else:
+                        self._ma[ch].append(0.0)
                 averaged = [
                     sum(buf) / len(buf) if buf else 0.0
                     for buf in self._ma
