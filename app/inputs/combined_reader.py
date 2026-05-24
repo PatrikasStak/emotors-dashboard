@@ -80,11 +80,9 @@ class CombinedReader:
         self._borto_voltage_samples = deque()
         self._stable_borto_raw_v = 0.0
         self._borto_low_since: float = 0.0
-        self._borto_high_since: float = 0.0
         self._thruster_voltage_samples = deque()
         self._stable_thruster_raw_v = 0.0
         self._thruster_low_since: float = 0.0
-        self._thruster_high_since: float = 0.0
 
     def _update_stable_voltage(self, samples: deque, current_stable: float,
                                 now: float, raw_v: float, throttle_v: float) -> float:
@@ -236,18 +234,13 @@ class CombinedReader:
                 s.adc_ch2_raw_v = ads.ch2_raw
                 s.adc_ch3_raw_v = ads.ch3_raw
                 if borto_raw >= BORTO_MIN_RAW_V:
-                    if self._borto_high_since == 0.0:
-                        self._borto_high_since = now
-                    if now - self._borto_high_since >= 2.0:
-                        self._borto_low_since = 0.0
+                    self._borto_low_since = 0.0
                     self._stable_borto_raw_v = self._update_stable_voltage(
                         self._borto_voltage_samples, self._stable_borto_raw_v,
                         now, borto_raw, s.switch_value_v,
                     )
-                    if self._borto_low_since == 0.0:
-                        s.borto_pct = _voltage_to_soc(self._stable_borto_raw_v * ADC_MULTIPLIER, _BORTO_SOC)
+                    s.borto_pct = _voltage_to_soc(self._stable_borto_raw_v * ADC_MULTIPLIER, _BORTO_SOC)
                 else:
-                    self._borto_high_since = 0.0
                     if self._borto_low_since == 0.0:
                         self._borto_low_since = now
                     if now - self._borto_low_since >= 3.0:
@@ -255,18 +248,13 @@ class CombinedReader:
                         self._borto_voltage_samples.clear()
 
                 if thruster_raw >= THRUSTER_MIN_RAW_V:
-                    if self._thruster_high_since == 0.0:
-                        self._thruster_high_since = now
-                    if now - self._thruster_high_since >= 2.0:
-                        self._thruster_low_since = 0.0
+                    self._thruster_low_since = 0.0
                     self._stable_thruster_raw_v = self._update_stable_voltage(
                         self._thruster_voltage_samples, self._stable_thruster_raw_v,
                         now, thruster_raw, s.switch_value_v,
                     )
-                    if self._thruster_low_since == 0.0:
-                        s.thruster_pct = _voltage_to_soc(self._stable_thruster_raw_v * ADC_MULTIPLIER, _THRUSTER_SOC)
+                    s.thruster_pct = _voltage_to_soc(self._stable_thruster_raw_v * ADC_MULTIPLIER, _THRUSTER_SOC)
                 else:
-                    self._thruster_high_since = 0.0
                     if self._thruster_low_since == 0.0:
                         self._thruster_low_since = now
                     if now - self._thruster_low_since >= 3.0:
