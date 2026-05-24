@@ -221,10 +221,8 @@ class CombinedReader:
             ads = self.adc.snapshot()
             ads_ok = (ads.last_update != 0.0 and (now - ads.last_update) < ADS_STALE_SEC)
             if ads_ok:
-                borto_raw    = ads.ch0
-                thruster_raw = ads.ch3
-                s.borto_raw_v    = borto_raw
-                s.thruster_raw_v = thruster_raw
+                s.borto_raw_v    = ads.ch0_raw
+                s.thruster_raw_v = ads.ch3_raw
                 s.adc_ch0_v = ads.ch0
                 s.adc_ch1_v = ads.ch1
                 s.adc_ch2_v = ads.ch2
@@ -233,11 +231,11 @@ class CombinedReader:
                 s.adc_ch1_raw_v = ads.ch1_raw
                 s.adc_ch2_raw_v = ads.ch2_raw
                 s.adc_ch3_raw_v = ads.ch3_raw
-                if borto_raw >= BORTO_MIN_RAW_V:
+                if ads.ch0_raw >= BORTO_MIN_RAW_V:
                     self._borto_low_since = 0.0
                     self._stable_borto_raw_v = self._update_stable_voltage(
                         self._borto_voltage_samples, self._stable_borto_raw_v,
-                        now, borto_raw, s.switch_value_v,
+                        now, ads.ch0, s.switch_value_v,
                     )
                     s.borto_pct = _voltage_to_soc(self._stable_borto_raw_v * ADC_MULTIPLIER, _BORTO_SOC)
                 else:
@@ -247,11 +245,11 @@ class CombinedReader:
                         self._stable_borto_raw_v = 0.0
                         self._borto_voltage_samples.clear()
 
-                if thruster_raw >= THRUSTER_MIN_RAW_V:
+                if ads.ch3_raw >= THRUSTER_MIN_RAW_V:
                     self._thruster_low_since = 0.0
                     self._stable_thruster_raw_v = self._update_stable_voltage(
                         self._thruster_voltage_samples, self._stable_thruster_raw_v,
-                        now, thruster_raw, s.switch_value_v,
+                        now, ads.ch3, s.switch_value_v,
                     )
                     s.thruster_pct = _voltage_to_soc(self._stable_thruster_raw_v * ADC_MULTIPLIER, _THRUSTER_SOC)
                 else:

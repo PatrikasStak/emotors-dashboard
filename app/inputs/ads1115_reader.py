@@ -100,8 +100,6 @@ class ADS1115Reader:
                 for ch, v in enumerate(raw):
                     if v >= _MIN_V:
                         self._ma[ch].append(v)
-                    else:
-                        self._ma[ch].append(0.0)
                 averaged = [
                     sum(buf) / len(buf) if buf else 0.0
                     for buf in self._ma
