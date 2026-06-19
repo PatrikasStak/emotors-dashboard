@@ -54,6 +54,17 @@ _KLS_ERRORS = {
 POWER_DEADBAND_A = 0.8
 RPM_DEADBAND = 30.0
 
+RPM_MA_WINDOW    = 15
+RPM_SPIKE_FACTOR = 3.0      # reject sample if > factor × running average
+RPM_MAX_VALID    = 9500.0   # absolute ceiling — above this is always noise
+
+BAT_V_VALID_MIN  = 40.0     # anything outside this range from CAN is noise
+BAT_V_VALID_MAX  = 80.0
+BAT_V_MA_WINDOW  = 8
+
+ERROR_DEBOUNCE_FRAMES   = 4  # frames a KLS error bit must be set/clear to show/hide
+REVERSE_DEBOUNCE_FRAMES = 5  # frames reverse_active must be stable before switching
+
 BAT_V_MIN = 48.0
 BAT_V_MAX = 58.0
 BATTERY_AVG_WINDOW_SEC = 20.0
@@ -81,6 +92,19 @@ class CombinedReader:
         self._stable_borto_raw_v = 0.0
         self._thruster_voltage_samples = deque()
         self._stable_thruster_raw_v = 0.0
+
+        self._rpm_window: deque = deque(maxlen=RPM_MA_WINDOW)
+        self._rpm_avg: float = 0.0
+
+        self._bat_v_window: deque = deque(maxlen=BAT_V_MA_WINDOW)
+        self._bat_v_smoothed: float = 0.0
+
+        self._error_seen: dict = {}
+        self._error_gone: dict = {}
+        self._stable_error_bits: set = set()
+
+        self._reverse_count: int = 0
+        self._reverse_stable: bool = False
 
     def _update_stable_voltage(self, samples: deque, current_stable: float,
                                 now: float, raw_v: float, throttle_v: float) -> float:
@@ -126,14 +150,27 @@ class CombinedReader:
             can_ok = (cs.bus_last_update != 0.0 and (now - cs.bus_last_update) < CAN_BUS_STALE_SEC)
 
         if can_ok and cs is not None:
-            s.rpm = float(cs.rpm)
-            s.battery_voltage_v = float(cs.battery_voltage_v)
+            # --- RPM: spike rejection + moving average ---
+            raw_rpm = float(cs.rpm)
+            if raw_rpm < RPM_DEADBAND:
+                raw_rpm = 0.0
+            if raw_rpm <= RPM_MAX_VALID and (
+                self._rpm_avg == 0.0 or raw_rpm <= self._rpm_avg * RPM_SPIKE_FACTOR
+            ):
+                self._rpm_window.append(raw_rpm)
+                self._rpm_avg = sum(self._rpm_window) / len(self._rpm_window)
+            s.rpm = self._rpm_avg
+
+            # --- Battery voltage: range-gate + moving average ---
+            raw_bv = float(cs.battery_voltage_v)
+            if BAT_V_VALID_MIN <= raw_bv <= BAT_V_VALID_MAX:
+                self._bat_v_window.append(raw_bv)
+                self._bat_v_smoothed = sum(self._bat_v_window) / len(self._bat_v_window)
+            s.battery_voltage_v = self._bat_v_smoothed if self._bat_v_smoothed > 0.0 else 0.0
+
             # CANState now uses motor_current_a and throttle_v
             s.dc_current_a = float(getattr(cs, "dc_current_a", getattr(cs, "motor_current_a", 0.0)))
             s.switch_value_v = float(getattr(cs, "switch_value_v", getattr(cs, "throttle_v", 0.0)))
-
-            if s.rpm < RPM_DEADBAND:
-                s.rpm = 0.0
 
             s.switch_state = "blue" if 1.0 <= s.switch_value_v <= 4.0 else "red"
 
@@ -141,7 +178,17 @@ class CombinedReader:
             s.controller_temp_c = float(getattr(cs, "controller_temp_c", 0.0))
             s.engine_temp_c = float(getattr(cs, "motor_temp_c", 0.0))
             s.brakes_state = "on" if getattr(cs, "brake_on", False) else "off"
-            s.reverse_active = bool(getattr(cs, "reverse_active", False))
+
+            # --- reverse_active debounce ---
+            raw_reverse = bool(getattr(cs, "reverse_active", False))
+            if raw_reverse != self._reverse_stable:
+                self._reverse_count += 1
+                if self._reverse_count >= REVERSE_DEBOUNCE_FRAMES:
+                    self._reverse_stable = raw_reverse
+                    self._reverse_count = 0
+            else:
+                self._reverse_count = 0
+            s.reverse_active = self._reverse_stable
 
             normal_temp_state = "off"
             s.engine_state = "red" if s.engine_temp_c > MOTOR_TEMP_ALERT_C else normal_temp_state
@@ -253,10 +300,28 @@ class CombinedReader:
             errors.append("No GPS")
         if self.ina is not None and not ina_ok:
             errors.append("No INA")
+
+        # --- KLS error debounce ---
         if can_ok and cs is not None:
             code = cs.error_code
-            for bit, name in _KLS_ERRORS.items():
+            for bit in _KLS_ERRORS:
                 if code & (1 << bit):
+                    self._error_seen[bit] = self._error_seen.get(bit, 0) + 1
+                    self._error_gone[bit] = 0
+                    if self._error_seen[bit] >= ERROR_DEBOUNCE_FRAMES:
+                        self._stable_error_bits.add(bit)
+                else:
+                    self._error_gone[bit] = self._error_gone.get(bit, 0) + 1
+                    self._error_seen[bit] = 0
+                    if self._error_gone[bit] >= ERROR_DEBOUNCE_FRAMES:
+                        self._stable_error_bits.discard(bit)
+            for bit, name in _KLS_ERRORS.items():
+                if bit in self._stable_error_bits:
                     errors.append(name)
+        else:
+            self._stable_error_bits.clear()
+            self._error_seen.clear()
+            self._error_gone.clear()
+
         s.errors = errors
         return s
