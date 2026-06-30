@@ -17,6 +17,8 @@ from config import SPEED_FULL_SCALE_KPH, SPEED_MAX_VALUE, SPEED_UNIT, BAR_MODE, 
 # ----------------------------
 DESIGN_W, DESIGN_H = 1920, 1080   # logical design canvas
 FPS = 60
+BATTERY_ARC_SMOOTH_TAU_SEC = 0.45
+GAUGE_ARC_SMOOTH_TAU_SEC = 0.18
 
 # For development on your laptop:
 #WINDOWED = True
@@ -60,6 +62,12 @@ class Scaler:
 def clamp(v: float, lo: float, hi: float) -> float:
     return max(lo, min(hi, v))
 
+
+def smooth_toward(current: float | None, target: float, dt: float, tau_sec: float) -> float:
+    if current is None:
+        return target
+    alpha = 1.0 - math.exp(-dt / tau_sec)
+    return current + (target - current) * alpha
 
 
 def draw_solid_arc_ccw(
@@ -407,6 +415,10 @@ def main(reader):
     rpm = 0.0
     speed = 0.0
     battery = 0.0
+    power_arc = None
+    rpm_arc = None
+    speed_arc = None
+    battery_arc = None
     engine_value = 0
     chip_value = 60
     switch_value = 0
@@ -420,7 +432,9 @@ def main(reader):
     chip_state = "blue"
     switch_state = "red"
     thruster_pct = 0.0
+    thruster_arc = None
     borto_pct = 0.0
+    borto_arc = None
 
     _beep = _generate_beep()
     _prev_alerts: set = set()
@@ -462,8 +476,16 @@ def main(reader):
         # Map real kW -> gauge units (full scale = 8.0 gauge units on the image)
         power = (state.power_kw / KW_FULL_SCALE_KW) * 8.0
         battery = state.battery_pct
+        power_arc = smooth_toward(power_arc, power, dt, GAUGE_ARC_SMOOTH_TAU_SEC)
+        rpm_arc = smooth_toward(rpm_arc, rpm, dt, GAUGE_ARC_SMOOTH_TAU_SEC)
+        speed_arc = smooth_toward(speed_arc, speed, dt, GAUGE_ARC_SMOOTH_TAU_SEC)
+        battery_arc = smooth_toward(battery_arc, battery, dt, BATTERY_ARC_SMOOTH_TAU_SEC)
+
         thruster_pct = state.thruster_pct
+        thruster_arc = smooth_toward(thruster_arc, thruster_pct, dt, BATTERY_ARC_SMOOTH_TAU_SEC)
+
         borto_pct = state.borto_pct
+        borto_arc = smooth_toward(borto_arc, borto_pct, dt, BATTERY_ARC_SMOOTH_TAU_SEC)
 
         dc_current = int(state.dc_current_a)
         ac_current = int(state.ac_current_a)
@@ -634,7 +656,7 @@ def main(reader):
         blit_arc_image(
             assets["rpm arc"],
             (rpm_center_design[0] - 19.0, rpm_center_design[1] + 7.0),
-            min(rpm, RPM_VISIBLE_MAX), 0.0, RPM_VISIBLE_MAX,
+            min(rpm_arc, RPM_VISIBLE_MAX), 0.0, RPM_VISIBLE_MAX,
             RPM_START_DEG, RPM_END_DEG,
             "cw",
             mask_start_deg=RPM_MASK_START_DEG,
@@ -647,7 +669,7 @@ def main(reader):
         blit_arc_image(
             assets["speed arc"],
             (speed_center_design[0] + 12.0, speed_center_design[1] + 2.0),
-            min(speed, SPEED_VISIBLE_MAX), 0.0, SPEED_VISIBLE_MAX,
+            min(speed_arc, SPEED_VISIBLE_MAX), 0.0, SPEED_VISIBLE_MAX,
             SPEED_START_DEG, SPEED_END_DEG,
             "ccw",
             mask_start_deg=SPEED_MASK_START_DEG,
@@ -662,18 +684,18 @@ def main(reader):
         blit_arc_image(
             assets["kw arc"],
             (kw_center_design[0] + 21.0, kw_center_design[1] + 10.0),
-            min(power, KW_VISIBLE_MAX), 0.0, KW_VISIBLE_MAX,
+            min(power_arc, KW_VISIBLE_MAX), 0.0, KW_VISIBLE_MAX,
             KW_START_DEG, KW_END_DEG,
             "ccw",
             mask_start_deg=KW_MASK_START_DEG,
             base_start_deg=KW_BASE_START_DEG,
         )
 
-        battery_arc_key = "battery arc red" if battery <= 20.0 else "battery arc green"
+        battery_arc_key = "battery arc red" if battery_arc <= 20.0 else "battery arc green"
         blit_arc_image(
             assets[battery_arc_key],
             (kw_center_design[0] - 15.0, kw_center_design[1] + 13.0),
-            min(battery, BATTERY_VISIBLE_MAX), 0.0, BATTERY_VISIBLE_MAX,
+            min(battery_arc, BATTERY_VISIBLE_MAX), 0.0, BATTERY_VISIBLE_MAX,
             BATTERY_START_DEG, BATTERY_END_DEG,
             "cw",
             mask_start_deg=BATTERY_MASK_START_DEG,
@@ -800,12 +822,12 @@ def main(reader):
         borto_left_center  = (kw_center_design[0] - 170, kw_center_design[1])
         borto_right_center = (kw_center_design[0] + 170, kw_center_design[1])
         if BAR_MODE in (2, 3):
-            thruster_bar = "borto bar red" if thruster_pct <= 20.0 else "borto bar green"
-            blit_centered(mask_bar_image(assets[thruster_bar], thruster_pct / 100.0), borto_left_center)
+            thruster_bar = "borto bar red" if thruster_arc <= 20.0 else "borto bar green"
+            blit_centered(mask_bar_image(assets[thruster_bar], thruster_arc / 100.0), borto_left_center)
             blit_centered(assets["borto left"], borto_left_center)
         if BAR_MODE in (1, 3):
-            borto_bar = "borto bar red" if borto_pct <= 20.0 else "borto bar green"
-            blit_centered(mask_bar_image(assets[borto_bar], borto_pct / 100.0), borto_right_center)
+            borto_bar = "borto bar red" if borto_arc <= 20.0 else "borto bar green"
+            blit_centered(mask_bar_image(assets[borto_bar], borto_arc / 100.0), borto_right_center)
             blit_centered(assets["borto right"], borto_right_center)
 
         bar_h = assets["borto bar green"].get_height()
