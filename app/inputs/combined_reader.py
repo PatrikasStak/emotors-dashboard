@@ -62,6 +62,8 @@ BAT_V_VALID_MIN  = 40.0     # anything outside this range from CAN is noise
 BAT_V_VALID_MAX  = 80.0
 BAT_V_MA_WINDOW  = 8
 
+SPEED_MA_WINDOW  = 3
+
 ERROR_DEBOUNCE_FRAMES   = 4  # frames a KLS error bit must be set/clear to show/hide
 REVERSE_DEBOUNCE_FRAMES = 5  # frames reverse_active must be stable before switching
 
@@ -98,6 +100,8 @@ class CombinedReader:
 
         self._bat_v_window: deque = deque(maxlen=BAT_V_MA_WINDOW)
         self._bat_v_smoothed: float = 0.0
+
+        self._speed_window: deque = deque(maxlen=SPEED_MA_WINDOW)
 
         self._error_seen: dict = {}
         self._error_gone: dict = {}
@@ -255,7 +259,8 @@ class CombinedReader:
                 s.gps_utc = gs.gps_utc
                 raw_speed = float(gs.speed_kph)
                 if gs.satellites >= GPS_MIN_SATELLITES:
-                    s.speed_kph = raw_speed
+                    self._speed_window.append(raw_speed)
+                    s.speed_kph = sum(self._speed_window) / len(self._speed_window)
                     self._last_speed_kph = s.speed_kph
                     self._gps_lost_at = 0.0
             else:
