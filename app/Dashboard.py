@@ -859,6 +859,13 @@ def main(reader):
             pct_r = font_bar_label.render("%", True, colors["text"])
             screen.blit(pct_r, pct_r.get_rect(midtop=(cx_right, bar_bottom + 4)).topleft)
 
+        if BAR_MODE in (2, 3):
+            thruster_v = font_bar_label.render(f"{state.thruster_voltage_v:.1f} V", True, colors["text"])
+            screen.blit(thruster_v, thruster_v.get_rect(midright=(cx_left - bar_w // 2 - sc.s(16), bar_center_y)).topleft)
+        if BAR_MODE in (1, 3):
+            borto_v = font_bar_label.render(f"{state.borto_voltage_v:.1f} V", True, colors["text"])
+            screen.blit(borto_v, borto_v.get_rect(midleft=(cx_right + bar_w // 2 + sc.s(16), bar_center_y)).topleft)
+
         # 15) Errors overlay (centered at bottom)
         errors_rect = assets["errors"].get_rect(midbottom=sc.pt(DESIGN_W / 2, DESIGN_H - 10))
         screen.blit(assets["errors"], errors_rect.topleft)
@@ -955,8 +962,10 @@ if __name__ == "__main__":
                 errors = []
                 borto_pct = 50.0
                 borto_raw_v = 2.5
+                borto_voltage_v = 12.15
                 thruster_pct = 50.0
                 thruster_raw_v = 2.5
+                thruster_voltage_v = 12.8
                 adc_ch0_v = 2.5
                 adc_ch1_v = 0.02
                 adc_ch2_v = 2.5

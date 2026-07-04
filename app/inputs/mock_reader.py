@@ -37,8 +37,10 @@ class MockReader:
 
         s.borto_pct     = (math.sin(t * 0.4) + 1) / 2 * 100
         s.borto_raw_v   = 2.5
+        s.borto_voltage_v = 11.6 + (s.borto_pct / 100) * (12.7 - 11.6)
         s.thruster_pct  = (math.sin(t * 0.4 + math.pi) + 1) / 2 * 100
         s.thruster_raw_v = 2.5
+        s.thruster_voltage_v = 12.0 + (s.thruster_pct / 100) * (13.6 - 12.0)
         s.adc_ch0_v = 2.5
         s.adc_ch1_v = 0.02
         s.adc_ch2_v = 2.5

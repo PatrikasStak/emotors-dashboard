@@ -287,7 +287,8 @@ class CombinedReader:
                         now, ads.ch0, s.switch_value_v,
                     )
                 if self._stable_borto_raw_v > 0.0:
-                    s.borto_pct = _voltage_to_soc(self._stable_borto_raw_v * ADC_MULTIPLIER, _BORTO_SOC)
+                    s.borto_voltage_v = self._stable_borto_raw_v * ADC_MULTIPLIER
+                    s.borto_pct = _voltage_to_soc(s.borto_voltage_v, _BORTO_SOC)
 
                 if ads.ch3 >= THRUSTER_MIN_RAW_V:
                     self._stable_thruster_raw_v = self._update_stable_voltage(
@@ -295,7 +296,8 @@ class CombinedReader:
                         now, ads.ch3, s.switch_value_v,
                     )
                 if self._stable_thruster_raw_v > 0.0:
-                    s.thruster_pct = _voltage_to_soc(self._stable_thruster_raw_v * ADC_MULTIPLIER, _THRUSTER_SOC)
+                    s.thruster_voltage_v = self._stable_thruster_raw_v * ADC_MULTIPLIER
+                    s.thruster_pct = _voltage_to_soc(s.thruster_voltage_v, _THRUSTER_SOC)
 
         errors = []
         if not can_ok:
