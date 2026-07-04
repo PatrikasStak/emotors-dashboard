@@ -8,6 +8,16 @@ LOG=/tmp/dashboard_autostart.log
 echo "----- $(date) start_dashboard_gui.sh -----" >> "$LOG"
 echo "USER=$USER DISPLAY=$DISPLAY XAUTHORITY=$XAUTHORITY" >> "$LOG"
 
+# Single-instance guard: if autostart fires more than once (e.g. lxsession
+# restarting during boot), the second invocation exits here instead of
+# racing the first for /dev/ttyUSB0.
+LOCKFILE=/tmp/dashboard_gui.lock
+exec 9>"$LOCKFILE"
+if ! flock -n 9; then
+  echo "Dashboard already running (lock held by another instance), exiting." >> "$LOG"
+  exit 0
+fi
+
 # Wait until X really responds
 for i in {1..30}; do
   xdpyinfo >/dev/null 2>&1 && break
