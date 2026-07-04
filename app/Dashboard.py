@@ -364,7 +364,7 @@ def main(reader):
     font = pygame.font.Font(None, 20)
     font_tiny = pygame.font.Font(None, 22)
     font_bar_label = pygame.font.Font(None, 29)
-    font_bar_value = pygame.font.Font(None, 27)
+    font_bar_value = pygame.font.Font(None, 22)
     font_large = pygame.font.Font(None, 50)
     font_voltage = pygame.font.Font(None, 40)
     font_gauge = pygame.font.Font(None, 30)
@@ -717,11 +717,11 @@ def main(reader):
 
         # 7) RPM gauge numbers
         draw_centered_text("0",   (233, 718), colors["text"], font_gauge)
-        draw_centered_text("0.5", (150, 598), colors["text"], font_gauge)
+        # draw_centered_text("0.5", (150, 598), colors["text"], font_gauge)
         draw_centered_text("1",   (130, 450), colors["text"], font_gauge)
-        draw_centered_text("1.5", (178, 308), colors["text"], font_gauge)
+        # draw_centered_text("1.5", (178, 308), colors["text"], font_gauge)
         draw_centered_text("2",   (275, 207), colors["text"], font_gauge)
-        draw_centered_text("2.5", (406, 155), colors["text"], font_gauge)
+        # draw_centered_text("2.5", (406, 155), colors["text"], font_gauge)
         draw_centered_text("3",   (550, 160), colors["text"], font_gauge)
 
         # 7) KW gauge numbers
