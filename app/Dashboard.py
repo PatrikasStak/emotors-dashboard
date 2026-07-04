@@ -19,6 +19,7 @@ DESIGN_W, DESIGN_H = 1920, 1080   # logical design canvas
 FPS = 60
 BATTERY_ARC_SMOOTH_TAU_SEC = 0.45
 GAUGE_ARC_SMOOTH_TAU_SEC = 0.18
+SPEED_ARC_SMOOTH_TAU_SEC = 0.7
 
 # For development on your laptop:
 #WINDOWED = True
@@ -478,7 +479,7 @@ def main(reader):
         battery = state.battery_pct
         power_arc = smooth_toward(power_arc, power, dt, GAUGE_ARC_SMOOTH_TAU_SEC)
         rpm_arc = smooth_toward(rpm_arc, rpm, dt, GAUGE_ARC_SMOOTH_TAU_SEC)
-        speed_arc = smooth_toward(speed_arc, speed, dt, GAUGE_ARC_SMOOTH_TAU_SEC)
+        speed_arc = smooth_toward(speed_arc, speed, dt, SPEED_ARC_SMOOTH_TAU_SEC)
         battery_arc = smooth_toward(battery_arc, battery, dt, BATTERY_ARC_SMOOTH_TAU_SEC)
 
         thruster_pct = state.thruster_pct
