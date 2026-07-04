@@ -11,6 +11,7 @@ SPEED_FULL_SCALE_KPH = 12.0
 SPEED_MAX_VALUE = 12.0 #dead code
 GPS_MIN_SATELLITES = 20
 KW_FULL_SCALE_KW = 20.0
+RPM_FULL_SCALE = 3000.0  # real RPM that lines up with the gauge's printed max (6 = "x1000")
 
 # 0 = no bars, 1 = borto only, 2 = thruster only, 3 = both
 BAR_MODE = 3

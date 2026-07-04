@@ -13,7 +13,7 @@ from state.drive_handler import DriveHandler
 
 # ----------------------------
 # Config
-from config import SPEED_FULL_SCALE_KPH, SPEED_MAX_VALUE, SPEED_UNIT, BAR_MODE, OIL_CHANGE_HOURS, IS_PI, KW_FULL_SCALE_KW
+from config import SPEED_FULL_SCALE_KPH, SPEED_MAX_VALUE, SPEED_UNIT, BAR_MODE, OIL_CHANGE_HOURS, IS_PI, KW_FULL_SCALE_KW, RPM_FULL_SCALE
 # ----------------------------
 DESIGN_W, DESIGN_H = 1920, 1080   # logical design canvas
 FPS = 60
@@ -364,6 +364,7 @@ def main(reader):
     font = pygame.font.Font(None, 20)
     font_tiny = pygame.font.Font(None, 22)
     font_bar_label = pygame.font.Font(None, 29)
+    font_bar_value = pygame.font.Font(None, 27)
     font_large = pygame.font.Font(None, 50)
     font_voltage = pygame.font.Font(None, 40)
     font_gauge = pygame.font.Font(None, 30)
@@ -469,7 +470,8 @@ def main(reader):
         # ----------------------------
         state = reader.snapshot()
 
-        rpm = state.rpm
+        # Map real RPM -> gauge's internal RPM scale (calibrated so 6000 lines up with the printed max)
+        rpm = (state.rpm / RPM_FULL_SCALE) * 6000.0
 
         speed_kph = state.speed_kph
         # Map real speed (kph) -> your gauge units (0..12)
@@ -714,13 +716,13 @@ def main(reader):
         draw_centered_text("80", (779, 145), colors["text"], font_gauge)
 
         # 7) RPM gauge numbers
-        draw_centered_text("0", (233, 718), colors["text"], font_gauge)
-        draw_centered_text("1", (150, 598), colors["text"], font_gauge)
-        draw_centered_text("2", (130, 450), colors["text"], font_gauge)
-        draw_centered_text("3", (178, 308), colors["text"], font_gauge)
-        draw_centered_text("4", (275, 207), colors["text"], font_gauge)
-        draw_centered_text("5", (406, 155), colors["text"], font_gauge)
-        draw_centered_text("6", (550, 160), colors["text"], font_gauge)
+        draw_centered_text("0",   (233, 718), colors["text"], font_gauge)
+        draw_centered_text("0.5", (150, 598), colors["text"], font_gauge)
+        draw_centered_text("1",   (130, 450), colors["text"], font_gauge)
+        draw_centered_text("1.5", (178, 308), colors["text"], font_gauge)
+        draw_centered_text("2",   (275, 207), colors["text"], font_gauge)
+        draw_centered_text("2.5", (406, 155), colors["text"], font_gauge)
+        draw_centered_text("3",   (550, 160), colors["text"], font_gauge)
 
         # 7) KW gauge numbers
         _kw_step = KW_FULL_SCALE_KW / 4
@@ -860,10 +862,10 @@ def main(reader):
             screen.blit(pct_r, pct_r.get_rect(midtop=(cx_right, bar_bottom + 4)).topleft)
 
         if BAR_MODE in (2, 3):
-            thruster_v = font_bar_label.render(f"{state.thruster_voltage_v:.1f} V", True, colors["text"])
+            thruster_v = font_bar_value.render(f"{state.thruster_voltage_v:.1f} V", True, colors["text"])
             screen.blit(thruster_v, thruster_v.get_rect(midright=(cx_left - bar_w // 2 - sc.s(16), bar_center_y)).topleft)
         if BAR_MODE in (1, 3):
-            borto_v = font_bar_label.render(f"{state.borto_voltage_v:.1f} V", True, colors["text"])
+            borto_v = font_bar_value.render(f"{state.borto_voltage_v:.1f} V", True, colors["text"])
             screen.blit(borto_v, borto_v.get_rect(midleft=(cx_right + bar_w // 2 + sc.s(16), bar_center_y)).topleft)
 
         # 15) Errors overlay (centered at bottom)
