@@ -900,6 +900,7 @@ def main(reader):
 
         if not IS_PI:
             draw_centered_text(f"{state.power_kw:.1f} kW", (60, 20), colors["text"], font_gauge)
+            draw_centered_text(f"{state.rpm:.0f} RPM", (60, 50), colors["text"], font_gauge)
 
         # Trip / total runtime anchored to errors box top edge
         pad = sc.s(10)
