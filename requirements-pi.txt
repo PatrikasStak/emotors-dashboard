@@ -1,3 +1,4 @@
 pygame
 python-can
 gpsd-py3
+smbus2
