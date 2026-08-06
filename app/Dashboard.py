@@ -750,12 +750,7 @@ def main(reader):
             font_speed,
         )
 
-        # 7) DC/AC voltages centered on kwbg (DC above, AC below)
-        draw_centered_text(
-            f"DC {dc_current} A",
-            (kw_center_design[0], kw_center_design[1] - 50.0),
-            colors["text"],
-        )
+        # 7) AC current centered on kwbg
         draw_centered_text(
             f"AC {ac_current} A",
             (kw_center_design[0], kw_center_design[1] + 50.0),
