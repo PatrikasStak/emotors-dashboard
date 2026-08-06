@@ -13,7 +13,7 @@ from state.drive_handler import DriveHandler
 
 # ----------------------------
 # Config
-from config import SPEED_FULL_SCALE_KPH, SPEED_MAX_VALUE, SPEED_UNIT, BAR_MODE, OIL_CHANGE_HOURS, IS_PI, KW_FULL_SCALE_KW, RPM_FULL_SCALE
+from config import SPEED_FULL_SCALE_KPH, SPEED_MAX_VALUE, SPEED_UNIT, BAR_MODE, OIL_CHANGE_HOURS, IS_PI, KW_FULL_SCALE_KW, RPM_FULL_SCALE, SHOW_PB_VOLTAGE
 # ----------------------------
 DESIGN_W, DESIGN_H = 1920, 1080   # logical design canvas
 FPS = 60
@@ -122,6 +122,18 @@ def mask_bar_image(image: pygame.Surface, fraction: float) -> pygame.Surface:
     fill_h = int(h * clamp(fraction, 0.0, 1.0))
     if fill_h > 0:
         pygame.draw.rect(mask, pygame.Color(255, 255, 255), (0, h - fill_h, w, fill_h))
+    masked = image.copy()
+    masked.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+    return masked
+
+
+def mask_bar_image_horizontal(image: pygame.Surface, fraction: float, from_right: bool = True) -> pygame.Surface:
+    w, h = image.get_size()
+    mask = pygame.Surface((w, h), pygame.SRCALPHA)
+    fill_w = int(w * clamp(fraction, 0.0, 1.0))
+    if fill_w > 0:
+        x = w - fill_w if from_right else 0
+        pygame.draw.rect(mask, pygame.Color(255, 255, 255), (x, 0, fill_w, h))
     masked = image.copy()
     masked.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
     return masked
@@ -331,6 +343,9 @@ def main(reader):
         "borto right": load_img("assets/gauges/borto right.png"),
         "borto bar green": load_img("assets/arcs/borto bar green.png"),
         "borto bar red": load_img("assets/arcs/borto bar red.png"),
+        "single bar": load_img("assets/gauges/single bar.png"),
+        "single bar green": load_img("assets/arcs/single bar green.png"),
+        "single bar red": load_img("assets/arcs/single bar red.png"),
     }
     icon_keys = [
         "battery icon off", "battery icon on",
@@ -366,7 +381,7 @@ def main(reader):
     font_bar_label = pygame.font.Font(None, 29)
     font_bar_value = pygame.font.Font(None, 22)
     font_large = pygame.font.Font(None, 50)
-    font_voltage = pygame.font.Font(None, 40)
+    font_voltage = pygame.font.Font(None, 56)
     font_gauge = pygame.font.Font(None, 30)
     font_speed = pygame.font.Font(None, 90)
     font_kw = pygame.font.Font(None, 50)
@@ -750,20 +765,22 @@ def main(reader):
             font_speed,
         )
 
-        # 7) AC current centered on kwbg
-        draw_centered_text(
-            f"AC {ac_current} A",
-            (kw_center_design[0], kw_center_design[1] + 50.0),
-            colors["text"],
-        )
+        if BAR_MODE != 1:
+            # 7) AC current centered on kwbg
+            draw_centered_text(
+                f"AC {ac_current} A",
+                (kw_center_design[0], kw_center_design[1] + 50.0),
+                colors["text"],
+                font_voltage,
+            )
 
-        # 7) Battery voltage centered below kwbg
-        draw_centered_text(
-            f"{battery_voltage} V",
-            (kw_center_design[0], kw_center_design[1] + 200.0),
-            colors["text"],
-            font_voltage,
-        )
+            # 7) Battery voltage centered below kwbg
+            draw_centered_text(
+                f"{battery_voltage} V",
+                (kw_center_design[0], kw_center_design[1] + 200.0),
+                colors["text"],
+                font_voltage,
+            )
 
         # 9) Brakes icon
         screen.blit(
@@ -819,49 +836,83 @@ def main(reader):
         # 15) Borto gauges (bar under gauge face), 170 design units from kwbg center
         borto_left_center  = (kw_center_design[0] - 170, kw_center_design[1])
         borto_right_center = (kw_center_design[0] + 170, kw_center_design[1])
-        if BAR_MODE in (2, 3):
-            thruster_bar = "borto bar red" if thruster_arc <= 20.0 else "borto bar green"
-            blit_centered(mask_bar_image(assets[thruster_bar], thruster_arc / 100.0), borto_left_center)
-            blit_centered(assets["borto left"], borto_left_center)
-        if BAR_MODE in (1, 3):
-            borto_bar = "borto bar red" if borto_arc <= 20.0 else "borto bar green"
-            blit_centered(mask_bar_image(assets[borto_bar], borto_arc / 100.0), borto_right_center)
-            blit_centered(assets["borto right"], borto_right_center)
+        if BAR_MODE == 1:
+            # Single Pb bar, horizontal, centered on kwbg, fill grows right-to-left
+            single_bar_center = (kw_center_design[0], kw_center_design[1])
+            single_bar = "single bar red" if borto_arc <= 20.0 else "single bar green"
+            blit_centered(mask_bar_image_horizontal(assets[single_bar], borto_arc / 100.0, from_right=False), single_bar_center)
+            blit_centered(assets["single bar"], single_bar_center)
 
-        bar_h = assets["borto bar green"].get_height()
-        bar_w = assets["borto bar green"].get_width()
-        bar_center_y = sc.pt(0, borto_left_center[1])[1]
-        bar_top = bar_center_y - bar_h // 2
-        bar_bottom = bar_center_y + bar_h // 2
-        for label, frac in [("80", 0.2), ("60", 0.4), ("40", 0.6), ("20", 0.8)]:
-            rendered = font_tiny.render(label, True, colors["text"])
-            label_y = int(bar_top + frac * bar_h) + 1
-            if BAR_MODE in (2, 3):
-                cx = sc.pt(borto_left_center[0], 0)[0]
-                screen.blit(rendered, rendered.get_rect(center=(cx, label_y)).topleft)
-            if BAR_MODE in (1, 3):
-                cx = sc.pt(borto_right_center[0], 0)[0]
-                screen.blit(rendered, rendered.get_rect(center=(cx, label_y)).topleft)
+            bar_w = assets["single bar green"].get_width()
+            bar_h = assets["single bar green"].get_height()
+            cx = sc.pt(single_bar_center[0], 0)[0]
+            cy = sc.pt(0, single_bar_center[1])[1]
+            bar_left = cx - bar_w // 2
+            bar_right = cx + bar_w // 2
 
-        if BAR_MODE in (2, 3):
-            cx_left = sc.pt(borto_left_center[0], 0)[0]
-            fe = font_bar_label.render("Fe", True, colors["text"])
-            screen.blit(fe, fe.get_rect(midbottom=(cx_left, bar_top - 4)).topleft)
-            pct_l = font_bar_label.render("%", True, colors["text"])
-            screen.blit(pct_l, pct_l.get_rect(midtop=(cx_left, bar_bottom + 4)).topleft)
-        if BAR_MODE in (1, 3):
-            cx_right = sc.pt(borto_right_center[0], 0)[0]
+            for label, frac in [("20", 0.2), ("40", 0.4), ("60", 0.6), ("80", 0.8)]:
+                rendered = font_tiny.render(label, True, colors["text"])
+                label_x = int(bar_left + frac * bar_w)
+                screen.blit(rendered, rendered.get_rect(center=(label_x, cy + 10)).topleft)
+
             pb = font_bar_label.render("Pb", True, colors["text"])
-            screen.blit(pb, pb.get_rect(midbottom=(cx_right, bar_top - 4)).topleft)
-            pct_r = font_bar_label.render("%", True, colors["text"])
-            screen.blit(pct_r, pct_r.get_rect(midtop=(cx_right, bar_bottom + 4)).topleft)
+            screen.blit(pb, pb.get_rect(midright=(bar_left - 8, cy)).topleft)
+            pct = font_bar_label.render("%", True, colors["text"])
+            screen.blit(pct, pct.get_rect(midleft=(bar_right + 8, cy)).topleft)
 
-        if BAR_MODE in (2, 3):
-            thruster_v = font_bar_value.render(f"{state.thruster_voltage_v:.1f} V", True, colors["text"])
-            screen.blit(thruster_v, thruster_v.get_rect(midright=(cx_left - bar_w // 2 - sc.s(16), bar_center_y)).topleft)
-        if BAR_MODE in (1, 3):
-            borto_v = font_bar_value.render(f"{state.borto_voltage_v:.1f} V", True, colors["text"])
-            screen.blit(borto_v, borto_v.get_rect(midleft=(cx_right + bar_w // 2 + sc.s(16), bar_center_y)).topleft)
+            ac_text = font_voltage.render(f"AC {ac_current} A", True, colors["text"])
+            screen.blit(ac_text, ac_text.get_rect(midbottom=(cx, cy - bar_h // 2 - 12)).topleft)
+
+            batt_text = font_voltage.render(f"{battery_voltage} V", True, colors["text"])
+            screen.blit(batt_text, batt_text.get_rect(midtop=(cx, cy + bar_h // 2 + 12)).topleft)
+
+            if SHOW_PB_VOLTAGE:
+                borto_v = font_bar_value.render(f"{state.borto_voltage_v:.1f} V", True, colors["text"])
+                screen.blit(borto_v, borto_v.get_rect(topleft=(bar_left, cy + bar_h // 2 + 12)).topleft)
+        else:
+            if BAR_MODE in (2, 3):
+                thruster_bar = "borto bar red" if thruster_arc <= 20.0 else "borto bar green"
+                blit_centered(mask_bar_image(assets[thruster_bar], thruster_arc / 100.0), borto_left_center)
+                blit_centered(assets["borto left"], borto_left_center)
+            if BAR_MODE == 3:
+                borto_bar = "borto bar red" if borto_arc <= 20.0 else "borto bar green"
+                blit_centered(mask_bar_image(assets[borto_bar], borto_arc / 100.0), borto_right_center)
+                blit_centered(assets["borto right"], borto_right_center)
+
+            bar_h = assets["borto bar green"].get_height()
+            bar_w = assets["borto bar green"].get_width()
+            bar_center_y = sc.pt(0, borto_left_center[1])[1]
+            bar_top = bar_center_y - bar_h // 2
+            bar_bottom = bar_center_y + bar_h // 2
+            for label, frac in [("80", 0.2), ("60", 0.4), ("40", 0.6), ("20", 0.8)]:
+                rendered = font_tiny.render(label, True, colors["text"])
+                label_y = int(bar_top + frac * bar_h) + 1
+                if BAR_MODE in (2, 3):
+                    cx = sc.pt(borto_left_center[0], 0)[0]
+                    screen.blit(rendered, rendered.get_rect(center=(cx, label_y)).topleft)
+                if BAR_MODE == 3:
+                    cx = sc.pt(borto_right_center[0], 0)[0]
+                    screen.blit(rendered, rendered.get_rect(center=(cx, label_y)).topleft)
+
+            if BAR_MODE in (2, 3):
+                cx_left = sc.pt(borto_left_center[0], 0)[0]
+                fe = font_bar_label.render("Fe", True, colors["text"])
+                screen.blit(fe, fe.get_rect(midbottom=(cx_left, bar_top - 4)).topleft)
+                pct_l = font_bar_label.render("%", True, colors["text"])
+                screen.blit(pct_l, pct_l.get_rect(midtop=(cx_left, bar_bottom + 4)).topleft)
+            if BAR_MODE == 3:
+                cx_right = sc.pt(borto_right_center[0], 0)[0]
+                pb = font_bar_label.render("Pb", True, colors["text"])
+                screen.blit(pb, pb.get_rect(midbottom=(cx_right, bar_top - 4)).topleft)
+                pct_r = font_bar_label.render("%", True, colors["text"])
+                screen.blit(pct_r, pct_r.get_rect(midtop=(cx_right, bar_bottom + 4)).topleft)
+
+            if BAR_MODE in (2, 3):
+                thruster_v = font_bar_value.render(f"{state.thruster_voltage_v:.1f} V", True, colors["text"])
+                screen.blit(thruster_v, thruster_v.get_rect(midright=(cx_left - bar_w // 2 - sc.s(16), bar_center_y)).topleft)
+            if BAR_MODE == 3:
+                borto_v = font_bar_value.render(f"{state.borto_voltage_v:.1f} V", True, colors["text"])
+                screen.blit(borto_v, borto_v.get_rect(midleft=(cx_right + bar_w // 2 + sc.s(16), bar_center_y)).topleft)
 
         # 15) Errors overlay (centered at bottom)
         errors_rect = assets["errors"].get_rect(midbottom=sc.pt(DESIGN_W / 2, DESIGN_H - 10))
