@@ -11,8 +11,9 @@ export SDL_KMSDRM_DEVICE_INDEX=1
 
 source venv/bin/activate
 
-# Hand off from the boot splash without a black-screen gap: keep the last
-# splash frame on screen until the dashboard draws its first real frame.
-plymouth quit --retain-splash 2>/dev/null || true
+# --retain-splash may keep plymouthd (and its DRM master claim) alive
+# indefinitely instead of handing off, which would explain persistent
+# page-flip failures regardless of our own VT binding. Plain quit instead.
+plymouth quit 2>/dev/null || true
 
 python app/main.py >> /home/pi/dashboard.log 2>&1
