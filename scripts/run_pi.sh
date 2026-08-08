@@ -11,9 +11,16 @@ export SDL_KMSDRM_DEVICE_INDEX=1
 
 source venv/bin/activate
 
-# --retain-splash may keep plymouthd (and its DRM master claim) alive
-# indefinitely instead of handing off, which would explain persistent
-# page-flip failures regardless of our own VT binding. Plain quit instead.
-plymouth quit 2>/dev/null || true
+# plymouthd runs as root, so an unprivileged 'plymouth quit' silently fails
+# to actually terminate it, leaving it holding DRM master forever (which
+# shows up as "Could not queue pageflip: -13" on every frame). Needs sudo.
+sudo plymouth quit 2>/dev/null || true
+
+# Wait for plymouthd to actually exit before grabbing kmsdrm ourselves --
+# the quit command can return before the daemon has fully torn down.
+for i in $(seq 1 30); do
+    pgrep -x plymouthd >/dev/null || break
+    sleep 0.1
+done
 
 python app/main.py >> /home/pi/dashboard.log 2>&1
