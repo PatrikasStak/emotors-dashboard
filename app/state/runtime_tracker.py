@@ -20,6 +20,7 @@ class RuntimeTracker:
         self.path = os.path.abspath(path)
         self._trip_s = 0.0
         self._total_s = 0.0
+        self._lifetime_s = 0.0
         self._last_save = 0.0
         self._load()
 
@@ -29,6 +30,7 @@ class RuntimeTracker:
                 d = json.load(f)
             self._trip_s = float(d.get("trip_s", 0.0))
             self._total_s = float(d.get("total_s", 0.0))
+            self._lifetime_s = float(d.get("lifetime_s", 0.0))
         except Exception:
             pass
 
@@ -36,7 +38,11 @@ class RuntimeTracker:
         try:
             tmp = self.path + ".tmp"
             with open(tmp, "w") as f:
-                json.dump({"trip_s": self._trip_s, "total_s": self._total_s}, f, indent=2)
+                json.dump({
+                    "trip_s": self._trip_s,
+                    "total_s": self._total_s,
+                    "lifetime_s": self._lifetime_s,
+                }, f, indent=2)
                 f.flush()
                 os.fsync(f.fileno())
             os.replace(tmp, self.path)
@@ -47,6 +53,7 @@ class RuntimeTracker:
         if switch_active:
             self._trip_s += dt
             self._total_s += dt
+            self._lifetime_s += dt
         now = time.monotonic()
         if now - self._last_save >= _SAVE_INTERVAL:
             self.save()
@@ -70,3 +77,11 @@ class RuntimeTracker:
     @property
     def total_str(self) -> str:
         return _fmt(self._total_s)
+
+    @property
+    def lifetime_hours(self) -> float:
+        return self._lifetime_s / 3600.0
+
+    @property
+    def lifetime_str(self) -> str:
+        return _fmt(self._lifetime_s)

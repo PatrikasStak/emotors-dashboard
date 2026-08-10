@@ -16,8 +16,5 @@ RPM_FULL_SCALE = 3000.0  # real RPM that lines up with the gauge's printed max (
 # 0 = no bars, 1 = borto only, 2 = thruster only, 3 = both
 BAR_MODE = 1
 
-# Show the Pb bar's own voltage readout (bottom-left of the bar)
-SHOW_PB_VOLTAGE = True
-
 # Oil change reminder. 0 = disabled, any positive number = hours until alert
 OIL_CHANGE_HOURS = 0

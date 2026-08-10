@@ -13,7 +13,7 @@ from state.drive_handler import DriveHandler
 
 # ----------------------------
 # Config
-from config import SPEED_FULL_SCALE_KPH, SPEED_MAX_VALUE, SPEED_UNIT, BAR_MODE, OIL_CHANGE_HOURS, IS_PI, KW_FULL_SCALE_KW, RPM_FULL_SCALE, SHOW_PB_VOLTAGE
+from config import SPEED_FULL_SCALE_KPH, SPEED_MAX_VALUE, SPEED_UNIT, BAR_MODE, OIL_CHANGE_HOURS, IS_PI, KW_FULL_SCALE_KW, RPM_FULL_SCALE
 # ----------------------------
 DESIGN_W, DESIGN_H = 1920, 1080   # logical design canvas
 FPS = 60
@@ -380,8 +380,9 @@ def main(reader):
     font_tiny = pygame.font.Font(None, 22)
     font_bar_label = pygame.font.Font(None, 29)
     font_bar_value = pygame.font.Font(None, 22)
+    font_bar_pct = pygame.font.Font(None, 42)
     font_large = pygame.font.Font(None, 50)
-    font_voltage = pygame.font.Font(None, 56)
+    font_voltage = pygame.font.Font(None, 66)
     font_gauge = pygame.font.Font(None, 30)
     font_speed = pygame.font.Font(None, 90)
     font_kw = pygame.font.Font(None, 50)
@@ -855,20 +856,23 @@ def main(reader):
                 label_x = int(bar_left + frac * bar_w)
                 screen.blit(rendered, rendered.get_rect(center=(label_x, cy + 10)).topleft)
 
-            pb = font_bar_label.render("Pb", True, colors["text"])
-            screen.blit(pb, pb.get_rect(midright=(bar_left - 8, cy)).topleft)
-            pct = font_bar_label.render("%", True, colors["text"])
+            voltage_num = font_bar_label.render(f"{state.borto_voltage_v:.1f}", True, colors["text"])
+            voltage_unit = font_bar_label.render("V", True, colors["text"])
+            stack_h = voltage_num.get_height() + voltage_unit.get_height()
+            stack_top = cy - stack_h // 2
+            num_rect = voltage_num.get_rect(right=bar_left - 8, top=stack_top)
+            screen.blit(voltage_num, num_rect.topleft)
+            screen.blit(voltage_unit, voltage_unit.get_rect(centerx=num_rect.centerx, top=num_rect.bottom).topleft)
+            pct = font_bar_pct.render("%", True, colors["text"])
             screen.blit(pct, pct.get_rect(midleft=(bar_right + 8, cy)).topleft)
 
             ac_text = font_voltage.render(f"AC {ac_current} A", True, colors["text"])
-            screen.blit(ac_text, ac_text.get_rect(midbottom=(cx, cy - bar_h // 2 - 12)).topleft)
+            ac_center_px = sc.pt(kw_center_design[0], kw_center_design[1] - KW_RADIUS / 2.0 + 50.0)
+            screen.blit(ac_text, ac_text.get_rect(center=ac_center_px).topleft)
 
             batt_text = font_voltage.render(f"{battery_voltage} V", True, colors["text"])
-            screen.blit(batt_text, batt_text.get_rect(midtop=(cx, cy + bar_h // 2 + 12)).topleft)
-
-            if SHOW_PB_VOLTAGE:
-                borto_v = font_bar_value.render(f"{state.borto_voltage_v:.1f} V", True, colors["text"])
-                screen.blit(borto_v, borto_v.get_rect(topleft=(bar_left, cy + bar_h // 2 + 12)).topleft)
+            batt_center_px = sc.pt(kw_center_design[0], kw_center_design[1] + KW_RADIUS / 2.0 - 50.0)
+            screen.blit(batt_text, batt_text.get_rect(center=batt_center_px).topleft)
         else:
             if BAR_MODE in (2, 3):
                 thruster_bar = "borto bar red" if thruster_arc <= 20.0 else "borto bar green"

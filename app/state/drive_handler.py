@@ -4,6 +4,7 @@ import os
 import subprocess
 import threading
 import time
+from datetime import datetime, timezone
 
 _FLAG_TRIPRESET  = "/tmp/emotors_TRIPRESET"
 _FLAG_TOTALRESET = "/tmp/emotors_TOTALRESET"
@@ -62,6 +63,15 @@ class DriveHandler:
             except Exception as e:
                 print(f"DriveHandler LOGSDRIVE error: {e}")
 
+    def _write_engine_hours(self, dest_dir: str) -> None:
+        try:
+            ts = datetime.now(timezone.utc).isoformat(timespec="seconds")
+            line = f"Engine runtime (lifetime): {self._runtime.lifetime_str} ({self._runtime.lifetime_hours:.2f} hours) as of {ts}\n"
+            with open(os.path.join(dest_dir, "engine_hours.txt"), "w") as f:
+                f.write(line)
+        except Exception as e:
+            print(f"DriveHandler: engine_hours write error: {e}")
+
     def _find_mount_point(self, devname: str) -> str | None:
         try:
             with open("/proc/mounts") as f:
@@ -95,6 +105,7 @@ class DriveHandler:
                 return
 
             self._gps_logger.export_and_clear(mount_point)
+            self._write_engine_hours(mount_point)
             print(f"DriveHandler: logs exported to {mount_point}")
             self._notify("Logs Exported")
 
