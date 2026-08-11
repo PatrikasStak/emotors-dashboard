@@ -2,7 +2,8 @@ from __future__ import annotations
 from collections import deque
 import time
 from state.dashboard_state import DashboardState
-from config import GPS_MIN_SATELLITES
+from state.range_estimator import RangeEstimator
+from config import GPS_MIN_SATELLITES, PACK_CAPACITY_AH, PACK_SERIES_CELLS
 
 CAN_BUS_STALE_SEC = 1.5
 GPS_STALE_SEC = 2.0
@@ -112,6 +113,11 @@ class CombinedReader:
         self._reverse_count: int = 0
         self._reverse_stable: bool = False
 
+        self._neutral_count: int = 0
+        self._neutral_stable: bool = False
+
+        self._range = RangeEstimator(PACK_CAPACITY_AH, PACK_SERIES_CELLS)
+
     def _update_stable_voltage(self, samples: deque, current_stable: float,
                                 now: float, raw_v: float, throttle_v: float) -> float:
         cutoff = now - BATTERY_AVG_WINDOW_SEC
@@ -195,6 +201,17 @@ class CombinedReader:
             else:
                 self._reverse_count = 0
             s.reverse_active = self._reverse_stable
+
+            # --- neutral_active debounce ---
+            raw_neutral = (getattr(cs, "command_state", 1) == 0)
+            if raw_neutral != self._neutral_stable:
+                self._neutral_count += 1
+                if self._neutral_count >= REVERSE_DEBOUNCE_FRAMES:
+                    self._neutral_stable = raw_neutral
+                    self._neutral_count = 0
+            else:
+                self._neutral_count = 0
+            s.neutral_active = self._neutral_stable
 
             normal_temp_state = "off"
             s.engine_state = "red" if s.engine_temp_c > MOTOR_TEMP_ALERT_C else normal_temp_state
@@ -333,4 +350,9 @@ class CombinedReader:
             self._error_gone.clear()
 
         s.errors = errors
+
+        self._range.tick(s.dc_current_a, s.battery_voltage_v, s.speed_kph)
+        s.range_km = self._range.range_km
+        s.range_soc_pct = self._range.soc_pct
+
         return s

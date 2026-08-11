@@ -20,6 +20,7 @@ class DashboardState:
     brakes_state: str = "off"
     satellite_state: str = "off"
     reverse_active: bool = False
+    neutral_active: bool = False
 
     engine_state: str = "off"
     chip_state: str = "off"
@@ -44,3 +45,6 @@ class DashboardState:
     adc_ch1_raw_v: float = 0.0
     adc_ch2_raw_v: float = 0.0
     adc_ch3_raw_v: float = 0.0
+
+    range_km: Optional[float] = None
+    range_soc_pct: Optional[float] = None

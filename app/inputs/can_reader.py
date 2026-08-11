@@ -31,6 +31,7 @@ class CANState:
     error_code: int = 0
     brake_on: bool = False
     reverse_active: bool = False
+    command_state: int = 1  # raw "Status of command" bits: 0=Neutral, 1=forward, 2=backward
 
 
 class CANReader:
@@ -117,6 +118,7 @@ class CANReader:
                     self._s.motor_temp_c = motor_temp_c
                     self._s.brake_on = brake_on
                     self._s.reverse_active = reverse_active
+                    self._s.command_state = cmd
 
             if self.debug and now >= self._dbg_next:
                 self._dbg_next = now + 1.0

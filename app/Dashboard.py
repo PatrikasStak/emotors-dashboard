@@ -514,6 +514,7 @@ def main(reader):
         brakes_state = state.brakes_state
         satellite_state = state.satellite_state
         reverse_active = state.reverse_active
+        neutral_active = getattr(state, "neutral_active", False)
 
         engine_state = state.engine_state
         chip_state = state.chip_state
@@ -758,7 +759,7 @@ def main(reader):
         draw_centered_text("12", (1355, 164), colors["text"], font_gauge)
 
         # 7) Drive indicator centered on speed gauge
-        drive_indicator = "P" if brakes_state == "on" else ("R" if reverse_active else "D")
+        drive_indicator = "P" if brakes_state == "on" else ("N" if neutral_active else ("R" if reverse_active else "D"))
         draw_centered_text(
             drive_indicator,
             (speed_center_design[0] + 100.0, speed_center_design[1]),
@@ -1006,6 +1007,7 @@ if __name__ == "__main__":
                 brakes_state = "off"
                 satellite_state = "on"
                 reverse_active = False
+                neutral_active = False
                 engine_state = "blue"
                 chip_state = "blue"
                 switch_state = "blue"

@@ -1,6 +1,8 @@
 app/logs/
 app/runtime.json
 app/runtime.json.tmp
+app/range_state.json
+app/range_state.json.tmp
 
 __pycache__/
 *.pyc
