@@ -860,7 +860,7 @@ def main(reader):
             voltage_unit = font_bar_label.render("V", True, colors["text"])
             stack_h = voltage_num.get_height() + voltage_unit.get_height()
             stack_top = cy - stack_h // 2
-            num_rect = voltage_num.get_rect(right=bar_left + 12, top=stack_top)
+            num_rect = voltage_num.get_rect(right=bar_left - 3, top=stack_top)
             screen.blit(voltage_num, num_rect.topleft)
             screen.blit(voltage_unit, voltage_unit.get_rect(centerx=num_rect.centerx, top=num_rect.bottom).topleft)
             pct = font_bar_pct.render("%", True, colors["text"])
