@@ -10,12 +10,14 @@ INA_STALE_SEC = 1.0
 ADS_STALE_SEC = 1.0
 
 ADC_MULTIPLIER      = 5.0
-BORTO_MIN_RAW_V     = 11.6 / ADC_MULTIPLIER  # ~1.933 V — floor of _BORTO_SOC table
+BORTO_MIN_RAW_V     = 10.5 / ADC_MULTIPLIER  # 2.1 V — floor of _BORTO_SOC table
 THRUSTER_MIN_RAW_V  = 12.0 / ADC_MULTIPLIER  # ~2.000 V — floor of _THRUSTER_SOC table
 
+# Standard 12V flooded lead-acid resting-voltage SOC curve.
 _BORTO_SOC = [
-    (11.6,   0.0), (11.8,  20.0), (12.0,  40.0),
-    (12.2,  60.0), (12.4,  80.0), (12.5,  90.0), (12.7, 100.0),
+    (10.5,   0.0), (11.31, 10.0), (11.58, 20.0), (11.75, 30.0),
+    (11.9,  40.0), (12.06, 50.0), (12.2,  60.0), (12.32, 70.0),
+    (12.4,  80.0), (12.5,  90.0), (12.7, 100.0),
 ]
 _THRUSTER_SOC = [
     (12.0,   0.0), (12.8,   5.0), (13.1,  20.0),
