@@ -2,7 +2,7 @@ from __future__ import annotations
 from collections import deque
 import time
 from state.dashboard_state import DashboardState
-from state.range_estimator import RangeEstimator
+from state.range_estimator import RangeEstimator, CELL_OCV_SOC
 from config import GPS_MIN_SATELLITES, PACK_CAPACITY_AH, PACK_SERIES_CELLS
 
 CAN_BUS_STALE_SEC = 1.5
@@ -70,8 +70,6 @@ SPEED_MA_WINDOW  = 3
 ERROR_DEBOUNCE_FRAMES   = 4  # frames a KLS error bit must be set/clear to show/hide
 REVERSE_DEBOUNCE_FRAMES = 5  # frames reverse_active must be stable before switching
 
-BAT_V_MIN = 48.0
-BAT_V_MAX = 58.0
 BATTERY_AVG_WINDOW_SEC = 20.0
 CURRENT_AVG_WINDOW_SEC = 3.0
 BATTERY_IDLE_THROTTLE_MAX_V = 1.0
@@ -259,7 +257,8 @@ class CombinedReader:
                 measured_battery_voltage_v,
                 s.switch_value_v,
             )
-            pct = (stable_battery_voltage_v - BAT_V_MIN) / (BAT_V_MAX - BAT_V_MIN) * 100.0
+            cell_v = stable_battery_voltage_v / PACK_SERIES_CELLS
+            pct = _voltage_to_soc(cell_v, CELL_OCV_SOC)
             s.battery_pct = max(0.0, min(100.0, pct))
             s.battery_state = "on" if s.battery_pct < 25.0 else "off"
         else:

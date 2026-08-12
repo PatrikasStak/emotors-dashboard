@@ -12,13 +12,13 @@ _EFFICIENCY_WINDOW_SEC = 180.0  # rolling window for the Wh/km efficiency averag
 _MOVING_SPEED_MIN_KPH = 1.0     # ignore near-zero speed so idling doesn't skew efficiency
 
 _REST_CURRENT_MAX_A = 1.0    # "at rest" (no load) threshold for OCV recalibration
-_REST_DURATION_SEC = 300.0   # how long it must stay at rest before trusting OCV
+_REST_DURATION_SEC = 90.0    # how long it must stay at rest before trusting OCV
 
 # Generic Li-ion (NMC/LCO) rest-voltage SOC curve, per cell. Flat through the
 # middle and steep near the ends - voltage alone is a poor real-time SOC signal
 # (which is why this is only used to recalibrate Coulomb counting at rest, not
 # read directly during normal operation).
-_CELL_OCV_SOC = [
+CELL_OCV_SOC = [
     (3.00, 0.0), (3.68, 10.0), (3.73, 20.0), (3.77, 30.0),
     (3.79, 40.0), (3.82, 50.0), (3.87, 60.0), (3.92, 70.0),
     (3.98, 80.0), (4.06, 90.0), (4.20, 100.0),
@@ -116,7 +116,7 @@ class RangeEstimator:
                     self._rest_since = now
                 elif now - self._rest_since >= _REST_DURATION_SEC and voltage_v > 0.0:
                     cell_v = voltage_v / self.series_cells
-                    soc = _voltage_to_soc(cell_v, _CELL_OCV_SOC)
+                    soc = _voltage_to_soc(cell_v, CELL_OCV_SOC)
                     self._remaining_ah = self.capacity_ah * (soc / 100.0)
             else:
                 self._rest_since = 0.0
