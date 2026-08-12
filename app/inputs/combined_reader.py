@@ -352,6 +352,7 @@ class CombinedReader:
 
         self._range.tick(s.dc_current_a, s.battery_voltage_v, s.speed_kph)
         s.range_km = self._range.range_km
+        s.range_hours = self._range.range_hours
         s.range_soc_pct = self._range.soc_pct
 
         return s

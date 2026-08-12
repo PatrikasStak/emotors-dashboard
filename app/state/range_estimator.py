@@ -11,6 +11,8 @@ _SAVE_INTERVAL = 10.0  # seconds between auto-saves
 _EFFICIENCY_WINDOW_SEC = 180.0  # rolling window for the Wh/km efficiency average
 _MOVING_SPEED_MIN_KPH = 1.0     # ignore near-zero speed so idling doesn't skew efficiency
 
+_POWER_WINDOW_SEC = 60.0  # rolling window for the average-power (time remaining) estimate
+
 _REST_CURRENT_MAX_A = 1.0    # "at rest" (no load) threshold for OCV recalibration
 _REST_DURATION_SEC = 90.0    # how long it must stay at rest before trusting OCV
 
@@ -61,8 +63,10 @@ class RangeEstimator:
 
         self._energy_wh_samples: deque = deque()   # (t, wh_used_in_step)
         self._distance_km_samples: deque = deque()  # (t, km_traveled_in_step)
+        self._power_kw_samples: deque = deque()     # (t, power_kw) - not gated by movement
 
         self.range_km: float | None = None
+        self.range_hours: float | None = None
         self.soc_pct: float | None = None
 
         self._load()
@@ -148,6 +152,19 @@ class RangeEstimator:
             self.range_km = remaining_wh / wh_per_km
         else:
             self.range_km = None
+
+        # Rolling average power draw (any load counts, not just while moving).
+        self._power_kw_samples.append((now, power_kw))
+        power_cutoff = now - _POWER_WINDOW_SEC
+        while self._power_kw_samples and self._power_kw_samples[0][0] < power_cutoff:
+            self._power_kw_samples.popleft()
+        avg_power_kw = sum(v for _, v in self._power_kw_samples) / len(self._power_kw_samples)
+
+        if self.capacity_ah and avg_power_kw > 0.05:
+            remaining_wh = self._remaining_ah * voltage_v
+            self.range_hours = (remaining_wh / 1000.0) / avg_power_kw
+        else:
+            self.range_hours = None
 
         if now - self._last_save >= _SAVE_INTERVAL:
             self.save()

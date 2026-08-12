@@ -515,6 +515,7 @@ def main(reader):
         satellite_state = state.satellite_state
         reverse_active = state.reverse_active
         neutral_active = getattr(state, "neutral_active", False)
+        range_hours = getattr(state, "range_hours", None)
 
         engine_state = state.engine_state
         chip_state = state.chip_state
@@ -866,6 +867,15 @@ def main(reader):
             screen.blit(voltage_unit, voltage_unit.get_rect(centerx=num_rect.centerx, top=num_rect.bottom).topleft)
             pct = font_bar_pct.render("%", True, colors["text"])
             screen.blit(pct, pct.get_rect(midleft=(bar_right + 8, cy)).topleft)
+
+            if range_hours is not None:
+                total_min = int(round(range_hours * 60.0))
+                h, m = divmod(total_min, 60)
+                range_text = f"{h}h {m:02d}m remaining"
+            else:
+                range_text = "-- remaining"
+            range_rendered = font_bar_value.render(range_text, True, colors["text"])
+            screen.blit(range_rendered, range_rendered.get_rect(center=(cx, cy + 45)).topleft)
 
             ac_text = font_voltage.render(f"AC {ac_current} A", True, colors["text"])
             ac_center_px = sc.pt(kw_center_design[0], kw_center_design[1] - KW_RADIUS / 2.0 + 50.0)

@@ -47,4 +47,5 @@ class DashboardState:
     adc_ch3_raw_v: float = 0.0
 
     range_km: Optional[float] = None
+    range_hours: Optional[float] = None
     range_soc_pct: Optional[float] = None
