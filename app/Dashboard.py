@@ -874,8 +874,8 @@ def main(reader):
                 range_text = f"{h}h {m:02d}m remaining"
             else:
                 range_text = "-- remaining"
-            range_rendered = font_bar_value.render(range_text, True, colors["text"])
-            screen.blit(range_rendered, range_rendered.get_rect(center=(cx, cy + 45)).topleft)
+            range_rendered = font_bar_label.render(range_text, True, colors["text"])
+            screen.blit(range_rendered, range_rendered.get_rect(center=(cx, cy + 40)).topleft)
 
             ac_text = font_voltage.render(f"AC {ac_current} A", True, colors["text"])
             ac_center_px = sc.pt(kw_center_design[0], kw_center_design[1] - KW_RADIUS / 2.0 + 50.0)
