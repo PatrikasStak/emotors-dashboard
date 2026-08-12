@@ -19,6 +19,10 @@ BAR_MODE = 1
 # Oil change reminder. 0 = disabled, any positive number = hours until alert
 OIL_CHANGE_HOURS = 0
 
+# This boat has no INA228 DC current/voltage sensor - motor current/voltage come
+# from the CAN controller instead. Set True if one is ever wired in.
+HAS_INA228 = False
+
 # Propulsion battery pack (Li-ion, 12S), used for the projected-range estimate.
 PACK_SERIES_CELLS = 12
 PACK_CELL_MAX_V = 4.2   # full charge, per cell (~50.4V pack)
