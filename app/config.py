@@ -25,4 +25,4 @@ PACK_CELL_MAX_V = 4.2   # full charge, per cell (~50.4V pack)
 PACK_CELL_NOM_V = 3.7   # nominal, per cell (44.4V pack)
 PACK_CELL_MIN_V = 3.0   # safe low cutoff, per cell (protects cycle life) - not yet confirmed
 
-PACK_CAPACITY_AH = 200.0
+PACK_CAPACITY_AH = 388.0
