@@ -545,7 +545,7 @@ def main(reader):
             _beep_cooldown = 5.0
         _prev_alerts = current_alerts
 
-        runtime.tick(dt, not neutral_active)
+        runtime.tick(dt, not neutral_active and "No CAN" not in state.errors)
         if reader.gps is not None:
             gps_logger.tick(state, reader.gps.snapshot())
         drive_handler.tick()
