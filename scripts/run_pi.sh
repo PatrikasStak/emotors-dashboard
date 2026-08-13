@@ -14,7 +14,7 @@ source venv/bin/activate
 # plymouthd runs as root, so an unprivileged 'plymouth quit' silently fails
 # to actually terminate it, leaving it holding DRM master forever (which
 # shows up as "Could not queue pageflip: -13" on every frame). Needs sudo.
-sudo plymouth quit 2>/dev/null || true
+sudo plymouth quit --retain-splash 2>/dev/null || true
 
 # Wait for plymouthd to actually exit before grabbing kmsdrm ourselves --
 # the quit command can return before the daemon has fully torn down.
