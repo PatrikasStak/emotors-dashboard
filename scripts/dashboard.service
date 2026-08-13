@@ -1,6 +1,7 @@
 [Unit]
 Description=Emotors Dashboard
-After=multi-user.target
+After=multi-user.target can0-up.service
+Wants=can0-up.service
 Conflicts=getty@tty1.service
 
 [Service]
