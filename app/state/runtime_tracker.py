@@ -49,8 +49,8 @@ class RuntimeTracker:
         except Exception:
             pass
 
-    def tick(self, dt: float, switch_active: bool) -> None:
-        if switch_active:
+    def tick(self, dt: float, counting: bool) -> None:
+        if counting:
             self._trip_s += dt
             self._total_s += dt
             self._lifetime_s += dt

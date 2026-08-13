@@ -519,9 +519,9 @@ def main(reader):
         if range_hours is not None:
             total_min = int(round(range_hours * 60.0))
             h, m = divmod(total_min, 60)
-            range_text = f"{h}h {m:02d}m remaining"
+            range_text = f"{h}h {m:02d}m REMAINING"
         else:
-            range_text = "-- remaining"
+            range_text = "-- REMAINING"
 
         engine_state = state.engine_state
         chip_state = state.chip_state
@@ -545,7 +545,7 @@ def main(reader):
             _beep_cooldown = 5.0
         _prev_alerts = current_alerts
 
-        runtime.tick(dt, switch_value >= 1.0)
+        runtime.tick(dt, not neutral_active)
         if reader.gps is not None:
             gps_logger.tick(state, reader.gps.snapshot())
         drive_handler.tick()
