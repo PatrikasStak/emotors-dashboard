@@ -736,11 +736,11 @@ def main(reader):
         # 7) RPM gauge numbers
         draw_centered_text("0",   (233, 718), colors["text"], font_gauge)
         # draw_centered_text("0.5", (150, 598), colors["text"], font_gauge)
-        draw_centered_text("1",   (130, 450), colors["text"], font_gauge)
+        draw_centered_text("3",   (130, 450), colors["text"], font_gauge)
         # draw_centered_text("1.5", (178, 308), colors["text"], font_gauge)
-        draw_centered_text("2",   (275, 207), colors["text"], font_gauge)
+        draw_centered_text("6",   (275, 207), colors["text"], font_gauge)
         # draw_centered_text("2.5", (406, 155), colors["text"], font_gauge)
-        draw_centered_text("3",   (550, 160), colors["text"], font_gauge)
+        draw_centered_text("9",   (550, 160), colors["text"], font_gauge)
 
         # 7) KW gauge numbers
         _kw_step = KW_FULL_SCALE_KW / 4
@@ -752,12 +752,9 @@ def main(reader):
 
         # 7) Speed gauge numbers
         draw_centered_text("0", (1671, 720), colors["text"], font_gauge)
-        draw_centered_text("2", (1752, 598), colors["text"], font_gauge)
-        draw_centered_text("4", (1775, 451), colors["text"], font_gauge)
-        draw_centered_text("6", (1727, 311), colors["text"], font_gauge)
-        draw_centered_text("8", (1629, 209), colors["text"], font_gauge)
-        draw_centered_text("10", (1500, 156), colors["text"], font_gauge)
-        draw_centered_text("12", (1355, 164), colors["text"], font_gauge)
+        draw_centered_text("3", (1775, 451), colors["text"], font_gauge)
+        draw_centered_text("6", (1629, 209), colors["text"], font_gauge)
+        draw_centered_text("9", (1355, 164), colors["text"], font_gauge)
 
         # 7) Drive indicator centered on speed gauge
         drive_indicator = "P" if brakes_state == "on" else ("N" if neutral_active else ("R" if reverse_active else "D"))
