@@ -782,7 +782,7 @@ def main(reader):
 
             # 7) Battery voltage centered below kwbg
             draw_centered_text(
-                f"{battery_voltage} V",
+                f"DC {battery_voltage} V",
                 (kw_center_design[0], kw_center_design[1] + 200.0),
                 colors["text"],
                 font_voltage,
@@ -875,7 +875,7 @@ def main(reader):
             ac_center_px = sc.pt(kw_center_design[0], kw_center_design[1] - KW_RADIUS / 2.0 + 50.0)
             screen.blit(ac_text, ac_text.get_rect(center=ac_center_px).topleft)
 
-            batt_text = font_voltage.render(f"{battery_voltage} V", True, colors["text"])
+            batt_text = font_voltage.render(f"DC {battery_voltage} V", True, colors["text"])
             batt_center_px = sc.pt(kw_center_design[0], kw_center_design[1] + KW_RADIUS / 2.0 - 50.0)
             screen.blit(batt_text, batt_text.get_rect(center=batt_center_px).topleft)
         else:
