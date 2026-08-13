@@ -516,6 +516,12 @@ def main(reader):
         reverse_active = state.reverse_active
         neutral_active = getattr(state, "neutral_active", False)
         range_hours = getattr(state, "range_hours", None)
+        if range_hours is not None:
+            total_min = int(round(range_hours * 60.0))
+            h, m = divmod(total_min, 60)
+            range_text = f"{h}h {m:02d}m remaining"
+        else:
+            range_text = "-- remaining"
 
         engine_state = state.engine_state
         chip_state = state.chip_state
@@ -865,15 +871,6 @@ def main(reader):
             pct = font_bar_pct.render("%", True, colors["text"])
             screen.blit(pct, pct.get_rect(midleft=(bar_right + 8, cy)).topleft)
 
-            if range_hours is not None:
-                total_min = int(round(range_hours * 60.0))
-                h, m = divmod(total_min, 60)
-                range_text = f"{h}h {m:02d}m remaining"
-            else:
-                range_text = "-- remaining"
-            range_rendered = font_bar_label.render(range_text, True, colors["text"])
-            screen.blit(range_rendered, range_rendered.get_rect(center=(cx, cy + 135)).topleft)
-
             ac_text = font_voltage.render(f"AC {ac_current} A", True, colors["text"])
             ac_center_px = sc.pt(kw_center_design[0], kw_center_design[1] - KW_RADIUS / 2.0 + 50.0)
             screen.blit(ac_text, ac_text.get_rect(center=ac_center_px).topleft)
@@ -960,12 +957,16 @@ def main(reader):
             draw_centered_text(f"{state.power_kw:.1f} kW", (60, 20), colors["text"], font_gauge)
             draw_centered_text(f"{state.rpm:.0f} RPM", (60, 50), colors["text"], font_gauge)
 
-        # Trip / total runtime anchored to errors box top edge
+        # Remaining time top-left, trip/total stacked top-right, anchored to errors box top edge
         pad = sc.s(10)
-        trip_surf = font_gauge.render(f"TRIP  {runtime.trip_str}", True, colors["text"])
-        screen.blit(trip_surf, trip_surf.get_rect(bottomleft=(errors_rect.left + pad, errors_rect.top - pad)).topleft)
+        range_surf = font_gauge.render(range_text, True, colors["text"])
+        screen.blit(range_surf, range_surf.get_rect(bottomleft=(errors_rect.left + pad, errors_rect.top - pad)).topleft)
+
         total_surf = font_gauge.render(f"TOTAL  {runtime.total_str}", True, colors["text"])
-        screen.blit(total_surf, total_surf.get_rect(bottomright=(errors_rect.right - pad, errors_rect.top - pad)).topleft)
+        total_rect = total_surf.get_rect(bottomright=(errors_rect.right - pad, errors_rect.top - pad))
+        screen.blit(total_surf, total_rect.topleft)
+        trip_surf = font_gauge.render(f"TRIP  {runtime.trip_str}", True, colors["text"])
+        screen.blit(trip_surf, trip_surf.get_rect(bottomright=(errors_rect.right - pad, total_rect.top)).topleft)
 
         # Notification overlay
         notif = drive_handler.notification
