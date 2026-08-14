@@ -957,6 +957,9 @@ def main(reader):
             draw_centered_text(f"{state.power_kw:.1f} kW", (60, 20), colors["text"], font_gauge)
             draw_centered_text(f"{state.rpm:.0f} RPM", (60, 50), colors["text"], font_gauge)
 
+        # TEMP DEBUG - remove once RPM arc issue is diagnosed
+        draw_centered_text(f"state.rpm={state.rpm:.0f} rpm_arc={rpm_arc:.0f}", (200, 20), colors["text"], font_gauge)
+
         # Remaining time top-left, trip/total stacked top-right, anchored to errors box top edge
         pad = sc.s(10)
         range_surf = font_gauge.render(range_text, True, colors["text"])
