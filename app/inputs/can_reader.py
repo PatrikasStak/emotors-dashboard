@@ -74,7 +74,13 @@ class CANReader:
         assert self._bus is not None
 
         while not self._stop.is_set():
-            msg = self._bus.recv(timeout=1.0)
+            try:
+                msg = self._bus.recv(timeout=1.0)
+            except Exception as e:
+                if self.debug:
+                    print(f"CAN recv error: {e}")
+                time.sleep(0.1)
+                continue
             if msg is None:
                 continue
             if not msg.is_extended_id:
