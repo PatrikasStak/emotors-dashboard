@@ -60,6 +60,7 @@ RPM_DEADBAND = 30.0
 RPM_MA_WINDOW    = 15
 RPM_SPIKE_FACTOR = 3.0      # reject sample if > factor × running average
 RPM_MAX_VALID    = 9500.0   # absolute ceiling — above this is always noise
+RPM_SPIKE_REJECT_MAX = 5    # consecutive rejections before trusting the new value instead
 
 BAT_V_VALID_MIN  = 40.0     # anything outside this range from CAN is noise
 BAT_V_VALID_MAX  = 80.0
@@ -98,6 +99,7 @@ class CombinedReader:
 
         self._rpm_window: deque = deque(maxlen=RPM_MA_WINDOW)
         self._rpm_avg: float = 0.0
+        self._rpm_reject_count: int = 0
 
         self._bat_v_window: deque = deque(maxlen=BAT_V_MA_WINDOW)
         self._bat_v_smoothed: float = 0.0
@@ -169,6 +171,15 @@ class CombinedReader:
             ):
                 self._rpm_window.append(raw_rpm)
                 self._rpm_avg = sum(self._rpm_window) / len(self._rpm_window)
+                self._rpm_reject_count = 0
+            elif raw_rpm <= RPM_MAX_VALID:
+                # Sustained rejection means this is a real new value, not a noise spike.
+                self._rpm_reject_count += 1
+                if self._rpm_reject_count >= RPM_SPIKE_REJECT_MAX:
+                    self._rpm_window.clear()
+                    self._rpm_window.append(raw_rpm)
+                    self._rpm_avg = raw_rpm
+                    self._rpm_reject_count = 0
             s.rpm = self._rpm_avg
 
             # --- Battery voltage: range-gate + moving average ---
