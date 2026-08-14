@@ -361,7 +361,7 @@ class CombinedReader:
 
         s.errors = errors
 
-        self._range.tick(s.dc_current_a, s.battery_voltage_v, s.speed_kph)
+        self._range.tick(s.dc_current_a, s.battery_voltage_v, s.speed_kph, neutral=s.neutral_active)
         s.range_km = self._range.range_km
         s.range_hours = self._range.range_hours
         s.range_soc_pct = self._range.soc_pct

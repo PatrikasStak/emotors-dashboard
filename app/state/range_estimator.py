@@ -11,7 +11,8 @@ _SAVE_INTERVAL = 10.0  # seconds between auto-saves
 _EFFICIENCY_WINDOW_SEC = 180.0  # rolling window for the Wh/km efficiency average
 _MOVING_SPEED_MIN_KPH = 1.0     # ignore near-zero speed so idling doesn't skew efficiency
 
-_POWER_WINDOW_SEC = 60.0  # rolling window for the average-power (time remaining) estimate
+_POWER_WINDOW_SEC = 120.0  # rolling window for the average-power (time remaining) estimate
+_RANGE_HOURS_CAP = 100.0   # clamp so a near-zero power average can't blow the estimate up
 
 _REST_CURRENT_MAX_A = 1.0    # "at rest" (no load) threshold for OCV recalibration
 _REST_DURATION_SEC = 90.0    # how long it must stay at rest before trusting OCV
@@ -100,7 +101,7 @@ class RangeEstimator:
             self._remaining_ah = self.capacity_ah
             self.save()
 
-    def tick(self, current_a: float, voltage_v: float, speed_kph: float) -> None:
+    def tick(self, current_a: float, voltage_v: float, speed_kph: float, neutral: bool = False) -> None:
         now = time.monotonic()
         if self._last_tick == 0.0:
             self._last_tick = now
@@ -153,18 +154,21 @@ class RangeEstimator:
         else:
             self.range_km = None
 
-        # Rolling average power draw (any load counts, not just while moving).
-        self._power_kw_samples.append((now, power_kw))
-        power_cutoff = now - _POWER_WINDOW_SEC
-        while self._power_kw_samples and self._power_kw_samples[0][0] < power_cutoff:
-            self._power_kw_samples.popleft()
-        avg_power_kw = sum(v for _, v in self._power_kw_samples) / len(self._power_kw_samples)
-
-        if self.capacity_ah and avg_power_kw > 0.05:
-            remaining_wh = self._remaining_ah * voltage_v
-            self.range_hours = (remaining_wh / 1000.0) / avg_power_kw
-        else:
+        if neutral:
             self.range_hours = None
+        else:
+            # Rolling average power draw (any load counts, not just while moving).
+            self._power_kw_samples.append((now, power_kw))
+            power_cutoff = now - _POWER_WINDOW_SEC
+            while self._power_kw_samples and self._power_kw_samples[0][0] < power_cutoff:
+                self._power_kw_samples.popleft()
+            avg_power_kw = sum(v for _, v in self._power_kw_samples) / len(self._power_kw_samples)
+
+            if self.capacity_ah and avg_power_kw > 0.05:
+                remaining_wh = self._remaining_ah * voltage_v
+                self.range_hours = min(_RANGE_HOURS_CAP, (remaining_wh / 1000.0) / avg_power_kw)
+            else:
+                self.range_hours = None
 
         if now - self._last_save >= _SAVE_INTERVAL:
             self.save()
