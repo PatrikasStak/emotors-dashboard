@@ -72,7 +72,10 @@ ERROR_DEBOUNCE_FRAMES   = 4  # frames a KLS error bit must be set/clear to show/
 REVERSE_DEBOUNCE_FRAMES = 5  # frames reverse_active must be stable before switching
 
 BATTERY_AVG_WINDOW_SEC = 20.0
-CURRENT_AVG_WINDOW_SEC = 3.0
+CURRENT_AVG_WINDOW_SEC = 3.0          # window while RPM is actively changing
+CURRENT_AVG_WINDOW_SEC_STEADY = 8.0   # wider window once RPM has held steady, for a cleaner readout
+STEADY_RPM_BAND = 300.0               # max RPM swing over the lookback to count as "steady"
+STEADY_LOOKBACK_SEC = 2.5             # how far back to check RPM stability
 BATTERY_IDLE_THROTTLE_MAX_V = 1.0
 BATTERY_FREEZE_SEC = 120.0
 MOTOR_TEMP_ALERT_C = 80.0
@@ -92,6 +95,8 @@ class CombinedReader:
         self._bat_throttle_started: float = 0.0
         self._dc_samples: deque = deque()
         self._ac_samples: deque = deque()
+        self._rpm_history: deque = deque()
+        self._current_window_steady: bool = False
         self._borto_voltage_samples = deque()
         self._stable_borto_raw_v = 0.0
         self._thruster_voltage_samples = deque()
@@ -182,6 +187,18 @@ class CombinedReader:
                     self._rpm_reject_count = 0
             s.rpm = self._rpm_avg
 
+            # --- Steady-state detection (widens the current average window below) ---
+            self._rpm_history.append((now, self._rpm_avg))
+            rpm_cutoff = now - STEADY_LOOKBACK_SEC
+            while self._rpm_history and self._rpm_history[0][0] < rpm_cutoff:
+                self._rpm_history.popleft()
+            has_full_lookback = bool(self._rpm_history) and (now - self._rpm_history[0][0]) >= STEADY_LOOKBACK_SEC * 0.9
+            if has_full_lookback:
+                rpm_values = [v for _, v in self._rpm_history]
+                self._current_window_steady = (max(rpm_values) - min(rpm_values)) <= STEADY_RPM_BAND
+            else:
+                self._current_window_steady = False
+
             # --- Battery voltage: range-gate + moving average ---
             raw_bv = float(cs.battery_voltage_v)
             if BAT_V_VALID_MIN <= raw_bv <= BAT_V_VALID_MAX:
@@ -238,6 +255,8 @@ class CombinedReader:
             s.switch_state = "off"
             s.engine_state = "off"
             s.chip_state = "off"
+            self._rpm_history.clear()
+            self._current_window_steady = False
 
         ina_ok = False
         ins = None
@@ -253,7 +272,8 @@ class CombinedReader:
         if abs(s.dc_current_a) < POWER_DEADBAND_A:
             s.dc_current_a = 0.0
 
-        cutoff = now - CURRENT_AVG_WINDOW_SEC
+        current_window_sec = CURRENT_AVG_WINDOW_SEC_STEADY if self._current_window_steady else CURRENT_AVG_WINDOW_SEC
+        cutoff = now - current_window_sec
         self._dc_samples.append((now, s.dc_current_a))
         self._ac_samples.append((now, s.ac_current_a))
         while self._dc_samples and self._dc_samples[0][0] < cutoff:
