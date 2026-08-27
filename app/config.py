@@ -30,3 +30,8 @@ PACK_CELL_NOM_V = 3.7   # nominal, per cell (44.4V pack)
 PACK_CELL_MIN_V = 3.0   # safe low cutoff, per cell (protects cycle life) - not yet confirmed
 
 PACK_CAPACITY_AH = 388.0
+
+# This boat's motor is wired/mounted so its rotation is physically reversed -
+# the controller's forward/reverse command bit ends up backwards relative to
+# actual boat motion. Set True to swap which gear the dashboard shows (R/D).
+INVERT_GEAR_DIRECTION = True

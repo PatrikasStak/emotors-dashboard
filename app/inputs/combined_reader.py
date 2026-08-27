@@ -3,7 +3,7 @@ from collections import deque
 import time
 from state.dashboard_state import DashboardState
 from state.range_estimator import RangeEstimator, CELL_OCV_SOC
-from config import GPS_MIN_SATELLITES, PACK_CAPACITY_AH, PACK_SERIES_CELLS
+from config import GPS_MIN_SATELLITES, PACK_CAPACITY_AH, PACK_SERIES_CELLS, INVERT_GEAR_DIRECTION
 
 CAN_BUS_STALE_SEC = 1.5
 GPS_STALE_SEC = 2.0
@@ -201,7 +201,13 @@ class CombinedReader:
             s.brakes_state = "on" if getattr(cs, "brake_on", False) else "off"
 
             # --- reverse_active debounce ---
-            raw_reverse = bool(getattr(cs, "reverse_active", False))
+            cmd_state = getattr(cs, "command_state", 1)
+            if INVERT_GEAR_DIRECTION and cmd_state in (1, 2):
+                # This boat's motor spins the opposite way, so the controller's
+                # forward/reverse command bits map to the opposite physical
+                # direction. Swap them; leave neutral (0) untouched.
+                cmd_state = 1 if cmd_state == 2 else 2
+            raw_reverse = (cmd_state == 2)
             if raw_reverse != self._reverse_stable:
                 self._reverse_count += 1
                 if self._reverse_count >= REVERSE_DEBOUNCE_FRAMES:
