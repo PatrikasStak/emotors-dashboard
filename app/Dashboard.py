@@ -20,6 +20,7 @@ FPS = 60
 BATTERY_ARC_SMOOTH_TAU_SEC = 0.45
 GAUGE_ARC_SMOOTH_TAU_SEC = 0.18
 SPEED_ARC_SMOOTH_TAU_SEC = 0.7
+GEAR_LETTER_HOLD_SEC = 10.0  # how long N/R/D shows as a letter before switching to a speed readout
 
 # For development on your laptop:
 #WINDOWED = True
@@ -462,6 +463,9 @@ def main(reader):
     _error_t = 0.0
     _ERROR_CYCLE_SEC = 2.0
 
+    _gear_letter = None
+    _gear_letter_t = 0.0
+
     _dim_surf = pygame.Surface((screen.get_width(), screen.get_height()))
     _dim_surf.fill((0, 0, 0))
     _dim_surf.set_alpha(89)  # 35%
@@ -764,8 +768,17 @@ def main(reader):
 
         # 7) Drive indicator centered on speed gauge
         drive_indicator = "P" if brakes_state == "on" else ("N" if neutral_active else ("R" if reverse_active else "D"))
+        if drive_indicator != _gear_letter:
+            _gear_letter = drive_indicator
+            _gear_letter_t = 0.0
+        else:
+            _gear_letter_t += dt
+        if drive_indicator != "P" and _gear_letter_t >= GEAR_LETTER_HOLD_SEC:
+            gear_display = str(int(round(speed_kph)))
+        else:
+            gear_display = drive_indicator
         draw_centered_text(
-            drive_indicator,
+            gear_display,
             (speed_center_design[0] + 100.0, speed_center_design[1]),
             colors["text"],
             font_speed,
