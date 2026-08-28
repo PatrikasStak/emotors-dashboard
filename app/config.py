@@ -46,7 +46,7 @@ INVERT_GEAR_DIRECTION = True
 # I2C (2, 3) or the CAN HAT's SPI/interrupt lines (7, 8, 9, 10, 11, 25).
 # Short press = reset trip. Press and hold = reset total.
 RESET_BUTTON_GPIO_PIN = 17
-RESET_BUTTON_LONG_PRESS_SEC = 5.0
+RESET_BUTTON_LONG_PRESS_SEC = 30.0
 # A press is confirmed once the pin reads "pressed" continuously for this long.
 RESET_BUTTON_PRESS_CONFIRM_SEC = 0.03
 # A release is only confirmed once the pin reads "not pressed" continuously for
