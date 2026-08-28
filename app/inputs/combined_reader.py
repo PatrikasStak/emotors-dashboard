@@ -78,6 +78,7 @@ STEADY_RPM_BAND = 300.0               # max RPM swing over the lookback to count
 STEADY_LOOKBACK_SEC = 2.5             # how far back to check RPM stability
 BATTERY_IDLE_THROTTLE_MAX_V = 1.0
 BATTERY_FREEZE_SEC = 120.0
+BATTERY_IDLE_CONFIRM_SEC = 1.5  # throttle must be idle this long before a voltage sample is trusted as "resting"
 BATTERY_PCT_MAX_FALL_PER_SEC = 0.5  # displayed SOC can rise instantly but only fall this fast
 MOTOR_TEMP_ALERT_C = 80.0
 CONTROLLER_TEMP_ALERT_C = 70.0
@@ -94,6 +95,9 @@ class CombinedReader:
         self._battery_voltage_samples = deque()
         self._stable_battery_voltage_v = 0.0
         self._bat_throttle_started: float = 0.0
+        self._bat_idle_since: float = 0.0
+        self._borto_idle_since: float = 0.0
+        self._thruster_idle_since: float = 0.0
         self._displayed_battery_pct: float = 0.0
         self._last_battery_pct_tick: float = 0.0
         self._dc_samples: deque = deque()
@@ -126,23 +130,31 @@ class CombinedReader:
 
         self._range = RangeEstimator(PACK_CAPACITY_AH, PACK_SERIES_CELLS)
 
-    def _update_stable_voltage(self, samples: deque, current_stable: float,
-                                now: float, raw_v: float, throttle_v: float) -> float:
+    def _update_stable_voltage(self, samples: deque, current_stable: float, idle_since: float,
+                                now: float, raw_v: float, throttle_v: float) -> tuple[float, float]:
         cutoff = now - BATTERY_AVG_WINDOW_SEC
         while samples and samples[0][0] < cutoff:
             samples.popleft()
 
         if raw_v <= 0.0:
-            return current_stable
+            return current_stable, idle_since
 
         if throttle_v < BATTERY_IDLE_THROTTLE_MAX_V:
-            samples.append((now, raw_v))
+            if idle_since == 0.0:
+                idle_since = now
+            # Wait for throttle to be confirmed idle before trusting a sample as
+            # "resting" - right at release, voltage may still be sagged from load
+            # and would otherwise poison the average with a falsely-low reading.
+            if now - idle_since >= BATTERY_IDLE_CONFIRM_SEC:
+                samples.append((now, raw_v))
+        else:
+            idle_since = 0.0
 
         if samples:
-            return sum(v for _, v in samples) / len(samples)
+            return sum(v for _, v in samples) / len(samples), idle_since
         elif current_stable == 0.0:
-            return raw_v
-        return current_stable
+            return raw_v, idle_since
+        return current_stable, idle_since
 
     def _update_stable_battery_voltage(self, now: float, voltage_v: float, throttle_v: float) -> float:
         if throttle_v >= BATTERY_IDLE_THROTTLE_MAX_V:
@@ -153,8 +165,8 @@ class CombinedReader:
             self._bat_throttle_started = 0.0
             frozen = False
         effective_throttle = throttle_v if frozen else 0.0
-        self._stable_battery_voltage_v = self._update_stable_voltage(
-            self._battery_voltage_samples, self._stable_battery_voltage_v,
+        self._stable_battery_voltage_v, self._bat_idle_since = self._update_stable_voltage(
+            self._battery_voltage_samples, self._stable_battery_voltage_v, self._bat_idle_since,
             now, voltage_v, effective_throttle,
         )
         return self._stable_battery_voltage_v
@@ -350,8 +362,8 @@ class CombinedReader:
                 s.adc_ch2_raw_v = ads.ch2_raw
                 s.adc_ch3_raw_v = ads.ch3_raw
                 if ads.ch0 >= BORTO_MIN_RAW_V:
-                    self._stable_borto_raw_v = self._update_stable_voltage(
-                        self._borto_voltage_samples, self._stable_borto_raw_v,
+                    self._stable_borto_raw_v, self._borto_idle_since = self._update_stable_voltage(
+                        self._borto_voltage_samples, self._stable_borto_raw_v, self._borto_idle_since,
                         now, ads.ch0, s.switch_value_v,
                     )
                 if self._stable_borto_raw_v > 0.0:
@@ -359,8 +371,8 @@ class CombinedReader:
                     s.borto_pct = _voltage_to_soc(s.borto_voltage_v, _BORTO_SOC)
 
                 if ads.ch3 >= THRUSTER_MIN_RAW_V:
-                    self._stable_thruster_raw_v = self._update_stable_voltage(
-                        self._thruster_voltage_samples, self._stable_thruster_raw_v,
+                    self._stable_thruster_raw_v, self._thruster_idle_since = self._update_stable_voltage(
+                        self._thruster_voltage_samples, self._stable_thruster_raw_v, self._thruster_idle_since,
                         now, ads.ch3, s.switch_value_v,
                     )
                 if self._stable_thruster_raw_v > 0.0:
