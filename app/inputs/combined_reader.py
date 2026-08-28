@@ -77,7 +77,6 @@ CURRENT_AVG_WINDOW_SEC_STEADY = 8.0   # wider window once RPM has held steady, f
 STEADY_RPM_BAND = 300.0               # max RPM swing over the lookback to count as "steady"
 STEADY_LOOKBACK_SEC = 2.5             # how far back to check RPM stability
 BATTERY_IDLE_THROTTLE_MAX_V = 1.0
-BATTERY_FREEZE_SEC = 120.0
 BATTERY_IDLE_CONFIRM_SEC = 1.5  # throttle must be idle this long before a voltage sample is trusted as "resting"
 BATTERY_PCT_MAX_FALL_PER_SEC = 0.5  # displayed SOC can rise instantly but only fall this fast
 MOTOR_TEMP_ALERT_C = 80.0
@@ -92,10 +91,6 @@ class CombinedReader:
         self._gps_lost_at: float = 0.0
         self._last_speed_kph: float = 0.0
         self.adc = adc_reader
-        self._battery_voltage_samples = deque()
-        self._stable_battery_voltage_v = 0.0
-        self._bat_throttle_started: float = 0.0
-        self._bat_idle_since: float = 0.0
         self._borto_idle_since: float = 0.0
         self._thruster_idle_since: float = 0.0
         self._displayed_battery_pct: float = 0.0
@@ -155,21 +150,6 @@ class CombinedReader:
         elif current_stable == 0.0:
             return raw_v, idle_since
         return current_stable, idle_since
-
-    def _update_stable_battery_voltage(self, now: float, voltage_v: float, throttle_v: float) -> float:
-        if throttle_v >= BATTERY_IDLE_THROTTLE_MAX_V:
-            if self._bat_throttle_started == 0.0:
-                self._bat_throttle_started = now
-            frozen = (now - self._bat_throttle_started) < BATTERY_FREEZE_SEC
-        else:
-            self._bat_throttle_started = 0.0
-            frozen = False
-        effective_throttle = throttle_v if frozen else 0.0
-        self._stable_battery_voltage_v, self._bat_idle_since = self._update_stable_voltage(
-            self._battery_voltage_samples, self._stable_battery_voltage_v, self._bat_idle_since,
-            now, voltage_v, effective_throttle,
-        )
-        return self._stable_battery_voltage_v
 
     def snapshot(self) -> DashboardState:
         now = time.monotonic()
@@ -304,12 +284,7 @@ class CombinedReader:
             if abs(s.power_kw) < 0.05:
                 s.power_kw = 0.0
 
-            stable_battery_voltage_v = self._update_stable_battery_voltage(
-                now,
-                measured_battery_voltage_v,
-                s.switch_value_v,
-            )
-            cell_v = stable_battery_voltage_v / PACK_SERIES_CELLS
+            cell_v = measured_battery_voltage_v / PACK_SERIES_CELLS
             pct = _voltage_to_soc(cell_v, CELL_OCV_SOC)
             raw_pct = max(0.0, min(100.0, pct))
 
