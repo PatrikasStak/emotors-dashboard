@@ -78,6 +78,7 @@ STEADY_RPM_BAND = 300.0               # max RPM swing over the lookback to count
 STEADY_LOOKBACK_SEC = 2.5             # how far back to check RPM stability
 BATTERY_IDLE_THROTTLE_MAX_V = 1.0
 BATTERY_FREEZE_SEC = 120.0
+BATTERY_PCT_MAX_FALL_PER_SEC = 0.5  # displayed SOC can rise instantly but only fall this fast
 MOTOR_TEMP_ALERT_C = 80.0
 CONTROLLER_TEMP_ALERT_C = 70.0
 GPS_ERROR_DELAY_SEC = 4.0
@@ -93,6 +94,8 @@ class CombinedReader:
         self._battery_voltage_samples = deque()
         self._stable_battery_voltage_v = 0.0
         self._bat_throttle_started: float = 0.0
+        self._displayed_battery_pct: float = 0.0
+        self._last_battery_pct_tick: float = 0.0
         self._dc_samples: deque = deque()
         self._ac_samples: deque = deque()
         self._rpm_history: deque = deque()
@@ -296,7 +299,17 @@ class CombinedReader:
             )
             cell_v = stable_battery_voltage_v / PACK_SERIES_CELLS
             pct = _voltage_to_soc(cell_v, CELL_OCV_SOC)
-            s.battery_pct = max(0.0, min(100.0, pct))
+            raw_pct = max(0.0, min(100.0, pct))
+
+            if self._last_battery_pct_tick == 0.0 or raw_pct >= self._displayed_battery_pct:
+                self._displayed_battery_pct = raw_pct
+            else:
+                pct_dt = now - self._last_battery_pct_tick
+                max_drop = BATTERY_PCT_MAX_FALL_PER_SEC * pct_dt
+                self._displayed_battery_pct = max(raw_pct, self._displayed_battery_pct - max_drop)
+            self._last_battery_pct_tick = now
+
+            s.battery_pct = self._displayed_battery_pct
             s.battery_state = "on" if s.battery_pct < 25.0 else "off"
         else:
             s.battery_state = "off"
