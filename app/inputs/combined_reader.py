@@ -3,7 +3,7 @@ from collections import deque
 import time
 from state.dashboard_state import DashboardState
 from state.range_estimator import RangeEstimator, CELL_OCV_SOC
-from config import GPS_MIN_SATELLITES, PACK_CAPACITY_AH, PACK_SERIES_CELLS, INVERT_GEAR_DIRECTION
+from config import GPS_MIN_SATELLITES, PACK_CAPACITY_AH, PACK_SERIES_CELLS, INVERT_GEAR_DIRECTION, BATTERY_VOLTAGE_OFFSET_V
 
 CAN_BUS_STALE_SEC = 1.5
 GPS_STALE_SEC = 2.0
@@ -200,7 +200,7 @@ class CombinedReader:
                 self._current_window_steady = False
 
             # --- Battery voltage: range-gate + moving average ---
-            raw_bv = float(cs.battery_voltage_v)
+            raw_bv = float(cs.battery_voltage_v) + BATTERY_VOLTAGE_OFFSET_V
             if BAT_V_VALID_MIN <= raw_bv <= BAT_V_VALID_MAX:
                 self._bat_v_window.append(raw_bv)
                 self._bat_v_smoothed = sum(self._bat_v_window) / len(self._bat_v_window)

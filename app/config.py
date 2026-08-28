@@ -31,6 +31,9 @@ PACK_CELL_MIN_V = 3.0   # safe low cutoff, per cell (protects cycle life) - not 
 
 PACK_CAPACITY_AH = 388.0
 
+# The CAN controller's reported battery voltage reads ~1V high vs. a multimeter.
+BATTERY_VOLTAGE_OFFSET_V = -1.0
+
 # This boat's motor is wired/mounted so its rotation is physically reversed -
 # the controller's forward/reverse command bit ends up backwards relative to
 # actual boat motion. Set True to swap which gear the dashboard shows (R/D).
