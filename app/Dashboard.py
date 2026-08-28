@@ -773,7 +773,7 @@ def main(reader):
             _gear_letter_t = 0.0
         else:
             _gear_letter_t += dt
-        if drive_indicator != "P" and _gear_letter_t >= GEAR_LETTER_HOLD_SEC:
+        if drive_indicator not in ("P", "N") and _gear_letter_t >= GEAR_LETTER_HOLD_SEC:
             gear_display = str(int(round(speed_kph)))
         else:
             gear_display = drive_indicator
