@@ -20,7 +20,7 @@ FPS = 60
 BATTERY_ARC_SMOOTH_TAU_SEC = 0.45
 GAUGE_ARC_SMOOTH_TAU_SEC = 0.18
 SPEED_ARC_SMOOTH_TAU_SEC = 0.7
-GEAR_LETTER_HOLD_SEC = 10.0  # how long N/R/D shows as a letter before switching to a speed readout
+GEAR_LETTER_HOLD_SEC = 5.0  # how long R/D shows as a letter before switching to a speed readout
 
 # For development on your laptop:
 #WINDOWED = True
