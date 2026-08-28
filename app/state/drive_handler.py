@@ -6,10 +6,27 @@ import threading
 import time
 from datetime import datetime, timezone
 
+from config import (
+    IS_PI,
+    RESET_BUTTON_GPIO_PIN,
+    RESET_BUTTON_LONG_PRESS_SEC,
+    RESET_BUTTON_PRESS_CONFIRM_SEC,
+    RESET_BUTTON_RELEASE_CONFIRM_SEC,
+)
+
 _FLAG_TRIPRESET  = "/tmp/emotors_TRIPRESET"
 _FLAG_TOTALRESET = "/tmp/emotors_TOTALRESET"
 _FLAG_LOGSDRIVE  = "/tmp/emotors_LOGSDRIVE"
 _NOTIFICATION_DURATION = 3.0
+
+_GPIO = None
+if IS_PI:
+    try:
+        import RPi.GPIO as _GPIO
+        _GPIO.setmode(_GPIO.BCM)
+    except Exception as e:
+        print(f"DriveHandler: RPi.GPIO unavailable, reset button disabled: {e}")
+        _GPIO = None
 
 
 class DriveHandler:
@@ -19,6 +36,15 @@ class DriveHandler:
         self._exporting = False
         self._notification_msg: str | None = None
         self._notification_until: float = 0.0
+
+        self._btn_pressed = False
+        self._btn_press_started = 0.0
+        self._btn_long_fired = False
+        self._btn_candidate: bool | None = None
+        self._btn_candidate_since = 0.0
+        self._btn_enabled = _GPIO is not None
+        if self._btn_enabled:
+            _GPIO.setup(RESET_BUTTON_GPIO_PIN, _GPIO.IN, pull_up_down=_GPIO.PUD_UP)
 
     @property
     def notification(self) -> str | None:
@@ -30,7 +56,51 @@ class DriveHandler:
         self._notification_msg = msg
         self._notification_until = time.monotonic() + _NOTIFICATION_DURATION
 
+    def _poll_reset_button(self) -> None:
+        if not self._btn_enabled:
+            return
+        now = time.monotonic()
+        try:
+            raw_pressed = _GPIO.input(RESET_BUTTON_GPIO_PIN) == _GPIO.LOW
+        except Exception as e:
+            print(f"DriveHandler: reset button read error: {e}")
+            return
+
+        if raw_pressed == self._btn_pressed:
+            # Matches the confirmed state - no pending transition, clear any
+            # stale candidate from an earlier glitch that didn't pan out.
+            self._btn_candidate = None
+        else:
+            if self._btn_candidate != raw_pressed:
+                self._btn_candidate = raw_pressed
+                self._btn_candidate_since = now
+            # Confirming a release takes longer than confirming a press, so a
+            # single noisy frame mid-hold can't masquerade as letting go.
+            confirm_sec = RESET_BUTTON_PRESS_CONFIRM_SEC if raw_pressed else RESET_BUTTON_RELEASE_CONFIRM_SEC
+            if now - self._btn_candidate_since >= confirm_sec:
+                self._btn_pressed = raw_pressed
+                self._btn_candidate = None
+                if raw_pressed:
+                    self._btn_press_started = now
+                    self._btn_long_fired = False
+                elif not self._btn_long_fired:
+                    # Released before the long-press threshold -> short press.
+                    self._runtime.reset_trip()
+                    self._runtime.save()
+                    self._notify("Trip Reset")
+                    print("DriveHandler: trip reset (button)")
+            return
+
+        if self._btn_pressed and not self._btn_long_fired and (now - self._btn_press_started) >= RESET_BUTTON_LONG_PRESS_SEC:
+            self._btn_long_fired = True
+            self._runtime.reset_total()
+            self._runtime.save()
+            self._notify("Total Reset")
+            print("DriveHandler: total reset (button)")
+
     def tick(self) -> None:
+        self._poll_reset_button()
+
         try:
             if os.path.exists(_FLAG_TRIPRESET):
                 os.remove(_FLAG_TRIPRESET)

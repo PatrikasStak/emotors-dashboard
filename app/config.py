@@ -35,3 +35,18 @@ PACK_CAPACITY_AH = 388.0
 # the controller's forward/reverse command bit ends up backwards relative to
 # actual boat motion. Set True to swap which gear the dashboard shows (R/D).
 INVERT_GEAR_DIRECTION = True
+
+# Physical trip/total reset button (replaces the USB-flashdrive reset flow).
+# Wire one leg of the button to this GPIO pin (BCM numbering) and the other
+# leg to any GND pin on the Pi - the pin is configured with an internal
+# pull-up, so no external resistor is needed. Avoid pins already claimed by
+# I2C (2, 3) or the CAN HAT's SPI/interrupt lines (7, 8, 9, 10, 11, 25).
+# Short press = reset trip. Press and hold = reset total.
+RESET_BUTTON_GPIO_PIN = 17
+RESET_BUTTON_LONG_PRESS_SEC = 5.0
+# A press is confirmed once the pin reads "pressed" continuously for this long.
+RESET_BUTTON_PRESS_CONFIRM_SEC = 0.03
+# A release is only confirmed once the pin reads "not pressed" continuously for
+# this long, so a brief noise glitch mid-hold can't be mistaken for a release
+# and cut the hold short.
+RESET_BUTTON_RELEASE_CONFIRM_SEC = 0.2

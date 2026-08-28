@@ -443,7 +443,7 @@ def main(reader):
     switch_value = 0
     dc_current = 200
     ac_current = 200
-    battery_voltage = 50
+    battery_voltage = 50.0
     battery_state = "on"
     brakes_state = "on"
     satellite_state = "on"
@@ -512,7 +512,7 @@ def main(reader):
 
         dc_current = int(state.dc_current_a)
         ac_current = int(state.ac_current_a)
-        battery_voltage = int(state.battery_voltage_v)
+        battery_voltage = state.battery_voltage_v
 
         battery_state = state.battery_state
         brakes_state = state.brakes_state
@@ -795,7 +795,7 @@ def main(reader):
 
             # 7) Battery voltage centered below kwbg
             draw_centered_text(
-                f"DC {battery_voltage} V",
+                f"DC {battery_voltage:.1f} V",
                 (kw_center_design[0], kw_center_design[1] + 200.0),
                 colors["text"],
                 font_voltage,
@@ -888,7 +888,7 @@ def main(reader):
             ac_center_px = sc.pt(kw_center_design[0], kw_center_design[1] - KW_RADIUS / 2.0 + 50.0)
             screen.blit(ac_text, ac_text.get_rect(center=ac_center_px).topleft)
 
-            batt_text = font_voltage.render(f"DC {battery_voltage} V", True, colors["text"])
+            batt_text = font_voltage.render(f"DC {battery_voltage:.1f} V", True, colors["text"])
             batt_center_px = sc.pt(kw_center_design[0], kw_center_design[1] + KW_RADIUS / 2.0 - 50.0)
             screen.blit(batt_text, batt_text.get_rect(center=batt_center_px).topleft)
         else:
