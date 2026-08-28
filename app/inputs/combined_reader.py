@@ -71,7 +71,7 @@ SPEED_MA_WINDOW  = 3
 ERROR_DEBOUNCE_FRAMES   = 4  # frames a KLS error bit must be set/clear to show/hide
 REVERSE_DEBOUNCE_FRAMES = 5  # frames reverse_active must be stable before switching
 
-BATTERY_AVG_WINDOW_SEC = 20.0
+BATTERY_AVG_WINDOW_SEC = 8.0
 CURRENT_AVG_WINDOW_SEC = 3.0          # window while RPM is actively changing
 CURRENT_AVG_WINDOW_SEC_STEADY = 8.0   # wider window once RPM has held steady, for a cleaner readout
 STEADY_RPM_BAND = 300.0               # max RPM swing over the lookback to count as "steady"
